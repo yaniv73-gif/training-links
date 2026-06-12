@@ -85,31 +85,58 @@
   .card-desc-row {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 0 16px 12px;
+    gap: 6px;
+    padding: 0 12px 8px 16px;
     border-top: 1px solid #f5f5f0;
-    margin-top: 2px;
-    padding-top: 10px;
+    padding-top: 6px;
   }
   .card-desc-text {
     flex: 1;
-    font-size: 13px;
-    color: #666;
+    font-size: 12px;
+    color: #888;
     line-height: 1.4;
     cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
-  .card-desc-text.empty { color: #bbb; font-style: italic; }
+  .card-desc-text.expanded {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
+  }
+  .expand-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 2px 4px;
+    color: #bbb;
+    flex-shrink: 0;
+    font-size: 12px;
+    line-height: 1;
+    transition: transform 0.2s;
+  }
+  .expand-btn.expanded { transform: rotate(180deg); }
   .edit-btn {
     background: none;
     border: none;
     cursor: pointer;
-    padding: 4px;
-    color: #bbb;
+    padding: 2px 4px;
+    color: #ccc;
     flex-shrink: 0;
-    font-size: 15px;
+    font-size: 13px;
     line-height: 1;
   }
   .edit-btn:active { color: #c7171a; }
+  .has-desc-dot {
+    width: 6px; height: 6px;
+    background: #c7171a;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 4px;
+    vertical-align: middle;
+    flex-shrink: 0;
+  }
 
   .empty { text-align: center; padding: 60px 20px; color: #bbb; font-size: 15px; }
 
@@ -297,6 +324,7 @@ const PLATFORM_SVG = {
 
 let activeCat = "הכל";
 let editingUrl = "";
+const expandedSet = new Set();
 
 function descKey(url) { return "desc_" + url; }
 function getDesc(url) { return localStorage.getItem(descKey(url)) || ""; }
@@ -365,25 +393,40 @@ function render() {
   }
 }
 
+function toggleExpand(url, e) {
+  e.preventDefault();
+  e.stopPropagation();
+  if (expandedSet.has(url)) expandedSet.delete(url);
+  else expandedSet.add(url);
+  render();
+}
+
 function cardHTML(l) {
   const desc = getDesc(l.url);
+  const isExpanded = expandedSet.has(l.url);
   const escapedTitle = l.title.replace(/'/g, "\\'");
   const escapedUrl = l.url.replace(/'/g, "\\'");
+
+  const descRow = desc ? `
+    <div class="card-desc-row">
+      <div class="card-desc-text ${isExpanded ? "expanded" : ""}" onclick="toggleExpand('${escapedUrl}',event)">${desc}</div>
+      <button class="expand-btn ${isExpanded ? "expanded" : ""}" onclick="toggleExpand('${escapedUrl}',event)" aria-label="הרחב">▾</button>
+      <button class="edit-btn" onclick="openModal('${escapedUrl}','${escapedTitle}',event)" aria-label="ערוך">✏️</button>
+    </div>` : "";
+
   return `<div class="card">
     <a class="card-main" href="${l.url}" target="_blank" rel="noopener">
       <div class="platform-icon pi-${l.platform}">${PLATFORM_SVG[l.platform]}</div>
       <div class="card-body">
         <div class="card-title">${l.title}</div>
-        <div class="card-meta">${l.date}</div>
+        <div class="card-meta">${l.date}${desc ? ' <span class="has-desc-dot"></span>' : ""}</div>
       </div>
-      <div class="card-arrow"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/></svg></div>
+      <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+        <button class="edit-btn" onclick="openModal('${escapedUrl}','${escapedTitle}',event)" aria-label="ערוך" style="color:#ddd;font-size:14px">✏️</button>
+        <div class="card-arrow"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/></svg></div>
+      </div>
     </a>
-    <div class="card-desc-row">
-      <div class="card-desc-text ${desc ? "" : "empty"}" onclick="openModal('${escapedUrl}','${escapedTitle}',event)">
-        ${desc || "הוסף תיאור..."}
-      </div>
-      <button class="edit-btn" onclick="openModal('${escapedUrl}','${escapedTitle}',event)" aria-label="ערוך תיאור">✏️</button>
-    </div>
+    ${descRow}
   </div>`;
 }
 
