@@ -374,66 +374,49 @@ function getOrderedLinks() {
   return inOrder;
 }
 
-// --- Touch drag ---
+// --- Drag (touch + mouse) ---
 let drag = null;
 
-function dragStart(e, cardEl, url) {
-  e.preventDefault();
-  const touch = e.touches[0];
-  const card = cardEl;
-  const rect = card.getBoundingClientRect();
-
-  const ghost = card.cloneNode(true);
+function dragBegin(clientX, clientY, cardEl, url) {
+  const rect = cardEl.getBoundingClientRect();
+  const ghost = cardEl.cloneNode(true);
   ghost.className = "card drag-ghost";
-  ghost.style.left = rect.left + "px";
-  ghost.style.top  = rect.top  + "px";
+  ghost.style.left  = rect.left + "px";
+  ghost.style.top   = rect.top  + "px";
   ghost.style.width = rect.width + "px";
   document.body.appendChild(ghost);
-  card.style.opacity = "0.25";
-
-  drag = { url, card, ghost, offsetY: touch.clientY - rect.top };
-  document.addEventListener("touchmove", dragMove, { passive: false });
-  document.addEventListener("touchend",  dragEnd,  { once: true });
+  cardEl.style.opacity = "0.25";
+  drag = { url, card: cardEl, ghost, offsetY: clientY - rect.top, offsetX: clientX - rect.left };
 }
 
-function dragMove(e) {
+function dragMove(clientX, clientY) {
   if (!drag) return;
-  e.preventDefault();
-  const touch = e.touches[0];
-  drag.ghost.style.top = (touch.clientY - drag.offsetY) + "px";
-
+  drag.ghost.style.top  = (clientY - drag.offsetY) + "px";
+  drag.ghost.style.left = (clientX - drag.offsetX) + "px";
   drag.ghost.style.visibility = "hidden";
-  const el = document.elementFromPoint(touch.clientX, touch.clientY);
+  const el = document.elementFromPoint(clientX, clientY);
   drag.ghost.style.visibility = "";
-
   document.querySelectorAll(".drag-over").forEach(x => x.classList.remove("drag-over"));
   const tc = el && el.closest(".card");
   const ts = el && el.closest(".section-title");
   if (tc && tc !== drag.card) { tc.classList.add("drag-over"); drag.dropCard = tc.dataset.url; drag.dropCat = null; }
-  else if (ts) { ts.classList.add("drag-over"); drag.dropCat = ts.dataset.cat; drag.dropCard = null; }
-  else { drag.dropCard = null; drag.dropCat = null; }
+  else if (ts)                { ts.classList.add("drag-over"); drag.dropCat = ts.dataset.cat;  drag.dropCard = null; }
+  else                        { drag.dropCard = null; drag.dropCat = null; }
 }
 
-function dragEnd() {
+function dragCommit() {
   if (!drag) return;
-  document.removeEventListener("touchmove", dragMove);
   document.querySelectorAll(".drag-over").forEach(x => x.classList.remove("drag-over"));
   drag.ghost.remove();
   drag.card.style.opacity = "";
-
   if (drag.dropCard) {
     const all = getOrderedLinks();
     const fi = all.findIndex(l => l.url === drag.url);
     const ti = all.findIndex(l => l.url === drag.dropCard);
-    if (fi !== -1 && ti !== -1 && fi !== ti) {
-      const [moved] = all.splice(fi, 1);
-      all.splice(ti, 0, moved);
-      saveOrder(all);
-    }
+    if (fi !== -1 && ti !== -1 && fi !== ti) { const [m] = all.splice(fi, 1); all.splice(ti, 0, m); saveOrder(all); }
     render();
   } else if (drag.dropCat) {
-    const link = LINKS.find(l => l.url === drag.url);
-    const prevCat = getLinkCat(link || {});
+    const prevCat = getLinkCat(LINKS.find(l => l.url === drag.url) || {});
     customCats[drag.url] = drag.dropCat;
     saveCats();
     lastDeleted = { type: "catMove", url: drag.url, prevCat };
@@ -442,6 +425,26 @@ function dragEnd() {
   }
   drag = null;
 }
+
+// Touch handlers
+function onTouchStart(e, cardEl, url) {
+  e.preventDefault();
+  dragBegin(e.touches[0].clientX, e.touches[0].clientY, cardEl, url);
+  document.addEventListener("touchmove", onTouchMove, { passive: false });
+  document.addEventListener("touchend",  onTouchEnd,  { once: true });
+}
+function onTouchMove(e) { e.preventDefault(); dragMove(e.touches[0].clientX, e.touches[0].clientY); }
+function onTouchEnd()   { document.removeEventListener("touchmove", onTouchMove); dragCommit(); }
+
+// Mouse handlers
+function onMouseDown(e, cardEl, url) {
+  e.preventDefault();
+  dragBegin(e.clientX, e.clientY, cardEl, url);
+  document.addEventListener("mousemove", onMouseMove);
+  document.addEventListener("mouseup",   onMouseUp, { once: true });
+}
+function onMouseMove(e) { dragMove(e.clientX, e.clientY); }
+function onMouseUp()    { document.removeEventListener("mousemove", onMouseMove); dragCommit(); }
 
 function saveDeletedState() {
   localStorage.setItem("deletedUrls", JSON.stringify([...deletedUrls]));
@@ -663,14 +666,22 @@ function setcat(c) { activeCat = c; render(); }
 
 render();
 
-// Event delegation for drag — works after every re-render since listener is on stable container
-document.getElementById("main").addEventListener("touchstart", function(e) {
+// Event delegation for drag — stable container survives re-renders
+const mainEl = document.getElementById("main");
+mainEl.addEventListener("touchstart", function(e) {
   const handle = e.target.closest(".drag-handle");
   if (!handle) return;
   const card = handle.closest(".card");
   if (!card || !card.dataset.url) return;
-  dragStart(e, card, card.dataset.url);
+  onTouchStart(e, card, card.dataset.url);
 }, { passive: false });
+mainEl.addEventListener("mousedown", function(e) {
+  const handle = e.target.closest(".drag-handle");
+  if (!handle) return;
+  const card = handle.closest(".card");
+  if (!card || !card.dataset.url) return;
+  onMouseDown(e, card, card.dataset.url);
+});
 </script>
 </body>
 </html>
