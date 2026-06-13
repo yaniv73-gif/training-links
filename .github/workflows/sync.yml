@@ -10,20 +10,40 @@ jobs:
       - name: Sync Gmail links
         run: |
           python3 << 'EOF'
-          import urllib.request, json, base64, os
+          import urllib.request, urllib.error, json, base64, os
+
           apps_url = os.environ['APPS_SCRIPT_URL']
           apps_token = os.environ['APPS_SCRIPT_TOKEN']
           github_token = os.environ['GITHUB_TOKEN']
           repo = 'yaniv73-gif/training-links'
-          with urllib.request.urlopen(f"{apps_url}?token={apps_token}") as r:
-            data = json.loads(r.read())
+
+          full_url = f"{apps_url}?token={apps_token}"
+          print(f"Calling Apps Script...")
+          try:
+            req = urllib.request.Request(full_url, headers={"User-Agent": "Mozilla/5.0"})
+            with urllib.request.urlopen(req, timeout=30) as r:
+              raw = r.read()
+              print(f"Response: {raw[:300]}")
+              data = json.loads(raw)
+          except urllib.error.HTTPError as e:
+            print(f"HTTP Error {e.code}: {e.read()[:300]}")
+            exit(1)
+          except json.JSONDecodeError as e:
+            print(f"JSON error: {e}")
+            exit(1)
+
           new_links = data.get('links', [])
-          if not new_links: print("No new links"); exit(0)
-          req = urllib.request.Request(f'https://api.github.com/repos/{repo}/contents/index.html',
+          print(f"Found {len(new_links)} new links")
+          if not new_links: exit(0)
+
+          req = urllib.request.Request(
+            f'https://api.github.com/repos/{repo}/contents/index.html',
             headers={'Authorization': f'token {github_token}', 'User-Agent': 'sync'})
-          with urllib.request.urlopen(req) as r: fd = json.loads(r.read())
+          with urllib.request.urlopen(req) as r:
+            fd = json.loads(r.read())
           content = base64.b64decode(fd['content'].replace('\n','')).decode('utf-8')
           sha = fd['sha']
+
           added = 0
           for l in new_links:
             if l['url'] not in content:
@@ -31,12 +51,16 @@ jobs:
               entry = f'  {{ date:"{l["date"]}", title:"{t}", cat:"{l["cat"]}", url:"{l["url"]}", platform:"{l["platform"]}" }},\n'
               content = content.replace('const LINKS = [\n', 'const LINKS = [\n' + entry, 1)
               added += 1
+
           if added == 0: print("All exist"); exit(0)
+
           body = json.dumps({'message': f'Sync: {added} new links', 'content': base64.b64encode(content.encode()).decode(), 'sha': sha})
-          req = urllib.request.Request(f'https://api.github.com/repos/{repo}/contents/index.html',
+          req = urllib.request.Request(
+            f'https://api.github.com/repos/{repo}/contents/index.html',
             data=body.encode(), method='PUT',
             headers={'Authorization': f'token {github_token}', 'User-Agent': 'sync', 'Content-Type': 'application/json'})
-          with urllib.request.urlopen(req) as r: print(f"Done: added {added} links")
+          with urllib.request.urlopen(req) as r:
+            print(f"Done: {added} links added")
           EOF
         env:
           APPS_SCRIPT_URL: ${{ secrets.APPS_SCRIPT_URL }}
