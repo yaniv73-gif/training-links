@@ -268,9 +268,6 @@
 
 <script>
 const LINKS = [
-  { date:"13/06/2026", title:"לאימון body triangle ", cat:"תאילנדי", url:"https://www.facebook.com/share/r/1DBLHYWuVo/", platform:"fb" },
-  { date:"13/06/2026", title:"לאימון סייד קונטרול - יציאות ", cat:"תאילנדי", url:"https://www.instagram.com/reel/DZVoj2Myt1i/?igsh=aWZzaHludTJveDY4", platform:"ig" },
-  { date:"13/06/2026", title:"לאימון תאילנדי הכנה להייקיק", cat:"תאילנדי", url:"https://www.instagram.com/reel/DX-ayC7Pe29/?igsh=ZXR1dDJ3eWUyMjRn", platform:"ig" },
   { date:"12/06/2026", title:"לאימון תאילנדי ושקים", cat:"תאילנדי", url:"https://www.instagram.com/reel/DZFIhXnviEc/?igsh=MTdkNzA2OG1qemZrYQ==", platform:"ig" },
   { date:"11/06/2026", title:"לאימון שוטרים", cat:"שוטרים", url:"https://www.facebook.com/share/v/18EK3kAUHm/", platform:"fb" },
   { date:"08/06/2026", title:"לאימון שקים", cat:"שקים", url:"https://www.facebook.com/share/r/18aDmEmati/", platform:"fb" },
@@ -384,7 +381,7 @@ async function runSync() {
 }
 
 function descKey(url) { return "desc_" + url; }
-function getDesc(url) { return localStorage.getItem(descKey(url)) || ""; }
+function getDesc(l) { return localStorage.getItem(descKey(l.url)) || l.desc || ""; }
 
 function openModal(url, title, e) {
   e.preventDefault();
@@ -459,7 +456,7 @@ function toggleExpand(url, e) {
 }
 
 function cardHTML(l) {
-  const desc = getDesc(l.url);
+  const desc = getDesc(l);
   const isExpanded = expandedSet.has(l.url);
   const escapedTitle = l.title.replace(/'/g, "\\'");
   const escapedUrl = l.url.replace(/'/g, "\\'");
