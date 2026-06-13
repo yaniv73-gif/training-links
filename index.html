@@ -41,7 +41,10 @@
 
   main { padding: 12px 12px 80px; }
 
-  .section-title { font-size: 12px; font-weight: 600; color: #999; text-transform: uppercase; letter-spacing: 0.5px; margin: 16px 0 8px 4px; }
+  .section-title { font-size: 12px; font-weight: 600; color: #999; text-transform: uppercase; letter-spacing: 0.5px; margin: 16px 0 8px 4px; display:flex; align-items:center; justify-content:space-between; padding-left:4px; }
+  .section-title-text { flex:1; }
+  .delete-cat-btn { background:none; border:none; cursor:pointer; color:#ddd; font-size:15px; padding:2px 6px; line-height:1; flex-shrink:0; }
+  .delete-cat-btn:active { color:#c7171a; }
 
   .card {
     background: #fff;
@@ -129,6 +132,8 @@
     line-height: 1;
   }
   .edit-btn:active { color: #c7171a; }
+  .delete-btn { background:none; border:none; cursor:pointer; padding:2px 4px; color:#ddd; flex-shrink:0; font-size:14px; line-height:1; }
+  .delete-btn:active { color:#c7171a; }
   .has-desc-dot {
     width: 6px; height: 6px;
     background: #c7171a;
@@ -268,9 +273,6 @@
 
 <script>
 const LINKS = [
-  { date:"13/06/2026", title:"לאימון body triangle ", cat:"תאילנדי", url:"https://www.facebook.com/share/r/1DBLHYWuVo/", platform:"fb", desc:"פתיחה פשוטה" },
-  { date:"13/06/2026", title:"לאימון סייד קונטרול - יציאות ", cat:"תאילנדי", url:"https://www.instagram.com/reel/DZVoj2Myt1i/?igsh=aWZzaHludTJveDY4", platform:"ig", desc:"תזהה את סוג הסייד | תבחר את היציאה המתאימה | תתחיל ביציאה" },
-  { date:"13/06/2026", title:"לאימון תאילנדי הכנה להייקיק", cat:"תאילנדי", url:"https://www.instagram.com/reel/DX-ayC7Pe29/?igsh=ZXR1dDJ3eWUyMjRn", platform:"ig", desc:"הכנה להייקיק" },
   { date:"12/06/2026", title:"לאימון תאילנדי ושקים", cat:"תאילנדי", url:"https://www.instagram.com/reel/DZFIhXnviEc/?igsh=MTdkNzA2OG1qemZrYQ==", platform:"ig" },
   { date:"11/06/2026", title:"לאימון שוטרים", cat:"שוטרים", url:"https://www.facebook.com/share/v/18EK3kAUHm/", platform:"fb" },
   { date:"08/06/2026", title:"לאימון שקים", cat:"שקים", url:"https://www.facebook.com/share/r/18aDmEmati/", platform:"fb" },
@@ -337,6 +339,63 @@ const SYNC_REPO  = "yaniv73-gif/training-links";
 let activeCat = "הכל";
 let editingUrl = "";
 const expandedSet = new Set();
+
+let deletedUrls = new Set(JSON.parse(localStorage.getItem("deletedUrls") || "[]"));
+let lastDeleted = null;
+
+function saveDeletedState() {
+  localStorage.setItem("deletedUrls", JSON.stringify([...deletedUrls]));
+}
+
+function deleteLink(url, e) {
+  e.preventDefault();
+  e.stopPropagation();
+  deletedUrls.add(url);
+  lastDeleted = { type: "url", url };
+  saveDeletedState();
+  render();
+  showUndoToast("קישור נמחק");
+}
+
+function deleteCat(cat, e) {
+  e.preventDefault();
+  e.stopPropagation();
+  const urls = LINKS.filter(l => l.cat === cat && !deletedUrls.has(l.url)).map(l => l.url);
+  if (!urls.length) return;
+  if (!confirm(`למחוק את כל ${urls.length} הקישורים של ${cat}?`)) return;
+  urls.forEach(u => deletedUrls.add(u));
+  lastDeleted = { type: "cat", cat, urls };
+  saveDeletedState();
+  activeCat = "הכל";
+  render();
+  showUndoToast(`${cat} נמחק (${urls.length})`);
+}
+
+function undoDelete() {
+  if (!lastDeleted) return;
+  lastDeleted.urls
+    ? lastDeleted.urls.forEach(u => deletedUrls.delete(u))
+    : deletedUrls.delete(lastDeleted.url);
+  lastDeleted = null;
+  saveDeletedState();
+  render();
+  const t = document.getElementById("toast");
+  if (t) t.style.opacity = "0";
+}
+
+function showUndoToast(msg) {
+  let t = document.getElementById("toast");
+  if (!t) {
+    t = document.createElement("div");
+    t.id = "toast";
+    t.style.cssText = "position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;z-index:999;transition:opacity 0.3s;white-space:nowrap;display:flex;gap:14px;align-items:center";
+    document.body.appendChild(t);
+  }
+  t.innerHTML = `<span>${msg}</span><button onclick="undoDelete()" style="background:none;border:none;color:#f88;font-weight:700;font-size:13px;cursor:pointer;padding:0;font-family:inherit">בטל</button>`;
+  t.style.opacity = "1";
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => { t.style.opacity = "0"; lastDeleted = null; }, 5000);
+}
 
 function showToast(msg, color) {
   let t = document.getElementById("toast");
@@ -412,8 +471,9 @@ function saveDesc() {
 }
 
 function getCounts() {
-  const counts = { "הכל": LINKS.length };
-  LINKS.forEach(l => { counts[l.cat] = (counts[l.cat] || 0) + 1; });
+  const visible = LINKS.filter(l => !deletedUrls.has(l.url));
+  const counts = { "הכל": visible.length };
+  visible.forEach(l => { counts[l.cat] = (counts[l.cat] || 0) + 1; });
   return counts;
 }
 
@@ -428,8 +488,9 @@ function render() {
   ).join("");
 
   let filtered = LINKS.filter(l => {
+    if (deletedUrls.has(l.url)) return false;
     const catOk = activeCat === "הכל" || l.cat === activeCat;
-    const desc = getDesc(l.url).toLowerCase();
+    const desc = getDesc(l).toLowerCase();
     const qOk = !q || l.title.toLowerCase().includes(q) || l.cat.toLowerCase().includes(q) || l.date.includes(q) || desc.includes(q);
     return catOk && qOk;
   });
@@ -442,7 +503,7 @@ function render() {
     CATS_ORDER.slice(1).forEach(c => byCat[c] = []);
     filtered.forEach(l => byCat[l.cat] && byCat[l.cat].push(l));
     main.innerHTML = CATS_ORDER.slice(1).filter(c => byCat[c] && byCat[c].length).map(c =>
-      `<div class="section-title">${c} (${byCat[c].length})</div>` +
+      `<div class="section-title"><span class="section-title-text">${c} (${byCat[c].length})</span><button class="delete-cat-btn" onclick="deleteCat('${c}',event)" title="מחק קטגוריה">🗑</button></div>` +
       byCat[c].map(l => cardHTML(l)).join("")
     ).join("");
   } else {
@@ -480,6 +541,7 @@ function cardHTML(l) {
       </div>
       <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
         <button class="edit-btn" onclick="openModal('${escapedUrl}','${escapedTitle}',event)" aria-label="ערוך" style="color:#ddd;font-size:14px">✏️</button>
+        <button class="delete-btn" onclick="deleteLink('${escapedUrl}',event)" aria-label="מחק">🗑</button>
         <div class="card-arrow"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/></svg></div>
       </div>
     </a>
