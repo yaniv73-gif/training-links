@@ -18,19 +18,14 @@ jobs:
           repo = 'yaniv73-gif/training-links'
 
           full_url = f"{apps_url}?token={apps_token}"
-          print(f"Calling Apps Script...")
+          print("Calling Apps Script...")
           try:
             req = urllib.request.Request(full_url, headers={"User-Agent": "Mozilla/5.0"})
             with urllib.request.urlopen(req, timeout=30) as r:
               raw = r.read()
-              print(f"Response: {raw[:300]}")
               data = json.loads(raw)
-          except urllib.error.HTTPError as e:
-            print(f"HTTP Error {e.code}: {e.read()[:300]}")
-            exit(1)
-          except json.JSONDecodeError as e:
-            print(f"JSON error: {e}")
-            exit(1)
+          except Exception as e:
+            print(f"Error: {e}"); exit(1)
 
           new_links = data.get('links', [])
           print(f"Found {len(new_links)} new links")
@@ -48,7 +43,8 @@ jobs:
           for l in new_links:
             if l['url'] not in content:
               t = l['title'].replace('"','\\"')
-              entry = f'  {{ date:"{l["date"]}", title:"{t}", cat:"{l["cat"]}", url:"{l["url"]}", platform:"{l["platform"]}" }},\n'
+              d = l.get('desc','').replace('"','\\"').replace('\n',' ')
+              entry = f'  {{ date:"{l["date"]}", title:"{t}", cat:"{l["cat"]}", url:"{l["url"]}", platform:"{l["platform"]}", desc:"{d}" }},\n'
               content = content.replace('const LINKS = [\n', 'const LINKS = [\n' + entry, 1)
               added += 1
 
