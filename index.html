@@ -134,6 +134,12 @@
   .edit-btn:active { color: #c7171a; }
   .delete-btn { background:none; border:none; cursor:pointer; padding:2px 4px; color:#ddd; flex-shrink:0; font-size:14px; line-height:1; }
   .delete-btn:active { color:#c7171a; }
+  .card-row { display:flex; align-items:stretch; }
+  .card-row .card-main { flex:1; min-width:0; }
+  .drag-handle { display:flex; align-items:center; padding:0 12px 0 8px; color:#d0d0d0; cursor:grab; touch-action:none; flex-shrink:0; }
+  .drag-handle:active { color:#999; cursor:grabbing; }
+  .drag-over { outline:2px solid #c7171a !important; outline-offset:2px; border-radius:14px; }
+  .drag-ghost { pointer-events:none; position:fixed; z-index:1000; opacity:0.92; box-shadow:0 8px 32px rgba(0,0,0,0.22); border-radius:14px; background:#fff; transition:none; }
   .has-desc-dot {
     width: 6px; height: 6px;
     background: #c7171a;
@@ -346,6 +352,97 @@ const expandedSet = new Set();
 let deletedUrls = new Set(JSON.parse(localStorage.getItem("deletedUrls") || "[]"));
 let lastDeleted = null;
 
+let customOrder = JSON.parse(localStorage.getItem("linkOrder") || "null");
+let customCats  = JSON.parse(localStorage.getItem("linkCats")  || "{}");
+
+function saveOrder(orderedLinks) {
+  customOrder = orderedLinks.map(l => l.url);
+  localStorage.setItem("linkOrder", JSON.stringify(customOrder));
+}
+function saveCats() {
+  localStorage.setItem("linkCats", JSON.stringify(customCats));
+}
+function getLinkCat(l) { return customCats[l.url] || l.cat; }
+function getOrderedLinks() {
+  const visible = LINKS.filter(l => !deletedUrls.has(l.url));
+  if (!customOrder) return visible;
+  const map = {};
+  visible.forEach(l => map[l.url] = l);
+  const inOrder = customOrder.filter(u => map[u]).map(u => map[u]);
+  const seen = new Set(customOrder);
+  visible.forEach(l => { if (!seen.has(l.url)) inOrder.unshift(l); });
+  return inOrder;
+}
+
+// --- Touch drag ---
+let drag = null;
+
+function dragStart(e, url) {
+  e.preventDefault();
+  const touch = e.touches[0];
+  const card = e.currentTarget.closest(".card");
+  const rect = card.getBoundingClientRect();
+
+  const ghost = card.cloneNode(true);
+  ghost.className = "card drag-ghost";
+  ghost.style.left = rect.left + "px";
+  ghost.style.top  = rect.top  + "px";
+  ghost.style.width = rect.width + "px";
+  document.body.appendChild(ghost);
+  card.style.opacity = "0.25";
+
+  drag = { url, card, ghost, offsetY: touch.clientY - rect.top };
+  document.addEventListener("touchmove", dragMove, { passive: false });
+  document.addEventListener("touchend",  dragEnd,  { once: true });
+}
+
+function dragMove(e) {
+  if (!drag) return;
+  e.preventDefault();
+  const touch = e.touches[0];
+  drag.ghost.style.top = (touch.clientY - drag.offsetY) + "px";
+
+  drag.ghost.style.visibility = "hidden";
+  const el = document.elementFromPoint(touch.clientX, touch.clientY);
+  drag.ghost.style.visibility = "";
+
+  document.querySelectorAll(".drag-over").forEach(x => x.classList.remove("drag-over"));
+  const tc = el && el.closest(".card");
+  const ts = el && el.closest(".section-title");
+  if (tc && tc !== drag.card) { tc.classList.add("drag-over"); drag.dropCard = tc.dataset.url; drag.dropCat = null; }
+  else if (ts) { ts.classList.add("drag-over"); drag.dropCat = ts.dataset.cat; drag.dropCard = null; }
+  else { drag.dropCard = null; drag.dropCat = null; }
+}
+
+function dragEnd() {
+  if (!drag) return;
+  document.removeEventListener("touchmove", dragMove);
+  document.querySelectorAll(".drag-over").forEach(x => x.classList.remove("drag-over"));
+  drag.ghost.remove();
+  drag.card.style.opacity = "";
+
+  if (drag.dropCard) {
+    const all = getOrderedLinks();
+    const fi = all.findIndex(l => l.url === drag.url);
+    const ti = all.findIndex(l => l.url === drag.dropCard);
+    if (fi !== -1 && ti !== -1 && fi !== ti) {
+      const [moved] = all.splice(fi, 1);
+      all.splice(ti, 0, moved);
+      saveOrder(all);
+    }
+    render();
+  } else if (drag.dropCat) {
+    const link = LINKS.find(l => l.url === drag.url);
+    const prevCat = getLinkCat(link || {});
+    customCats[drag.url] = drag.dropCat;
+    saveCats();
+    lastDeleted = { type: "catMove", url: drag.url, prevCat };
+    render();
+    showUndoToast("הועבר ל" + drag.dropCat);
+  }
+  drag = null;
+}
+
 function saveDeletedState() {
   localStorage.setItem("deletedUrls", JSON.stringify([...deletedUrls]));
 }
@@ -376,11 +473,18 @@ function deleteCat(cat, e) {
 
 function undoDelete() {
   if (!lastDeleted) return;
-  lastDeleted.urls
-    ? lastDeleted.urls.forEach(u => deletedUrls.delete(u))
-    : deletedUrls.delete(lastDeleted.url);
+  if (lastDeleted.type === "catMove") {
+    const orig = LINKS.find(l => l.url === lastDeleted.url);
+    if (orig && lastDeleted.prevCat === orig.cat) delete customCats[lastDeleted.url];
+    else customCats[lastDeleted.url] = lastDeleted.prevCat;
+    saveCats();
+  } else {
+    lastDeleted.urls
+      ? lastDeleted.urls.forEach(u => deletedUrls.delete(u))
+      : deletedUrls.delete(lastDeleted.url);
+    saveDeletedState();
+  }
   lastDeleted = null;
-  saveDeletedState();
   render();
   const t = document.getElementById("toast");
   if (t) t.style.opacity = "0";
@@ -474,9 +578,9 @@ function saveDesc() {
 }
 
 function getCounts() {
-  const visible = LINKS.filter(l => !deletedUrls.has(l.url));
+  const visible = getOrderedLinks();
   const counts = { "הכל": visible.length };
-  visible.forEach(l => { counts[l.cat] = (counts[l.cat] || 0) + 1; });
+  visible.forEach(l => { const c = getLinkCat(l); counts[c] = (counts[c] || 0) + 1; });
   return counts;
 }
 
@@ -490,11 +594,10 @@ function render() {
     </button>`
   ).join("");
 
-  let filtered = LINKS.filter(l => {
-    if (deletedUrls.has(l.url)) return false;
-    const catOk = activeCat === "הכל" || l.cat === activeCat;
+  let filtered = getOrderedLinks().filter(l => {
+    const catOk = activeCat === "הכל" || getLinkCat(l) === activeCat;
     const desc = getDesc(l).toLowerCase();
-    const qOk = !q || l.title.toLowerCase().includes(q) || l.cat.toLowerCase().includes(q) || l.date.includes(q) || desc.includes(q);
+    const qOk = !q || l.title.toLowerCase().includes(q) || getLinkCat(l).toLowerCase().includes(q) || l.date.includes(q) || desc.includes(q);
     return catOk && qOk;
   });
 
@@ -504,9 +607,9 @@ function render() {
   if (activeCat === "הכל" && !q) {
     const byCat = {};
     CATS_ORDER.slice(1).forEach(c => byCat[c] = []);
-    filtered.forEach(l => byCat[l.cat] && byCat[l.cat].push(l));
+    filtered.forEach(l => { const c = getLinkCat(l); if (byCat[c]) byCat[c].push(l); else byCat[c] = [l]; });
     main.innerHTML = CATS_ORDER.slice(1).filter(c => byCat[c] && byCat[c].length).map(c =>
-      `<div class="section-title"><span class="section-title-text">${c} (${byCat[c].length})</span><button class="delete-cat-btn" onclick="deleteCat('${c}',event)" title="מחק קטגוריה">🗑</button></div>` +
+      `<div class="section-title" data-cat="${c}"><span class="section-title-text">${c} (${byCat[c].length})</span><button class="delete-cat-btn" onclick="deleteCat('${c}',event)" title="מחק קטגוריה">🗑</button></div>` +
       byCat[c].map(l => cardHTML(l)).join("")
     ).join("");
   } else {
@@ -535,19 +638,23 @@ function cardHTML(l) {
       <button class="edit-btn" onclick="openModal('${escapedUrl}','${escapedTitle}',event)" aria-label="ערוך">✏️</button>
     </div>` : "";
 
-  return `<div class="card">
-    <a class="card-main" href="${l.url}" target="_blank" rel="noopener">
-      <div class="platform-icon pi-${l.platform}">${PLATFORM_SVG[l.platform]}</div>
-      <div class="card-body">
-        <div class="card-title">${l.title}</div>
-        <div class="card-meta">${l.date}${desc ? ' <span class="has-desc-dot"></span>' : ""}</div>
-      </div>
-      <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
-        <button class="edit-btn" onclick="openModal('${escapedUrl}','${escapedTitle}',event)" aria-label="ערוך" style="color:#ddd;font-size:14px">✏️</button>
-        <button class="delete-btn" onclick="deleteLink('${escapedUrl}',event)" aria-label="מחק">🗑</button>
-        <div class="card-arrow"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/></svg></div>
-      </div>
-    </a>
+  const dragHandleSVG = `<svg width="14" height="20" viewBox="0 0 14 20" fill="currentColor"><circle cx="4" cy="5" r="1.8"/><circle cx="10" cy="5" r="1.8"/><circle cx="4" cy="10" r="1.8"/><circle cx="10" cy="10" r="1.8"/><circle cx="4" cy="15" r="1.8"/><circle cx="10" cy="15" r="1.8"/></svg>`;
+  return `<div class="card" data-url="${escapedUrl}">
+    <div class="card-row">
+      <a class="card-main" href="${l.url}" target="_blank" rel="noopener">
+        <div class="platform-icon pi-${l.platform}">${PLATFORM_SVG[l.platform]}</div>
+        <div class="card-body">
+          <div class="card-title">${l.title}</div>
+          <div class="card-meta">${l.date}${desc ? ' <span class="has-desc-dot"></span>' : ""}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+          <button class="edit-btn" onclick="openModal('${escapedUrl}','${escapedTitle}',event)" aria-label="ערוך" style="color:#ddd;font-size:14px">✏️</button>
+          <button class="delete-btn" onclick="deleteLink('${escapedUrl}',event)" aria-label="מחק">🗑</button>
+          <div class="card-arrow"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/></svg></div>
+        </div>
+      </a>
+      <div class="drag-handle" ontouchstart="dragStart(event,'${escapedUrl}')">${dragHandleSVG}</div>
+    </div>
     ${descRow}
   </div>`;
 }
