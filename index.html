@@ -404,11 +404,19 @@ function dragMove(clientX, clientY) {
   else                        { drag.dropCard = null; drag.dropCat = null; }
 }
 
+let reloadTimer = null;
+function scheduleReload() {
+  clearTimeout(reloadTimer);
+  reloadTimer = setTimeout(() => window.location.reload(), 60000);
+  showToast && showToast("יעודכן בעוד דקה...", "#555");
+}
+
 function dragCommit() {
   if (!drag) return;
   document.querySelectorAll(".drag-over").forEach(x => x.classList.remove("drag-over"));
   drag.ghost.remove();
   drag.card.style.opacity = "";
+  const changed = !!(drag.dropCard || drag.dropCat);
   if (drag.dropCard) {
     const all = getOrderedLinks();
     const fi = all.findIndex(l => l.url === drag.url);
@@ -424,6 +432,7 @@ function dragCommit() {
     showUndoToast("הועבר ל" + drag.dropCat);
   }
   drag = null;
+  if (changed) scheduleReload();
 }
 
 // Touch handlers
