@@ -377,10 +377,10 @@ function getOrderedLinks() {
 // --- Touch drag ---
 let drag = null;
 
-function dragStart(e, url) {
+function dragStart(e, cardEl, url) {
   e.preventDefault();
   const touch = e.touches[0];
-  const card = e.currentTarget.closest(".card");
+  const card = cardEl;
   const rect = card.getBoundingClientRect();
 
   const ghost = card.cloneNode(true);
@@ -653,7 +653,7 @@ function cardHTML(l) {
           <div class="card-arrow"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/></svg></div>
         </div>
       </a>
-      <div class="drag-handle" ontouchstart="dragStart(event,'${escapedUrl}')">${dragHandleSVG}</div>
+      <div class="drag-handle">${dragHandleSVG}</div>
     </div>
     ${descRow}
   </div>`;
@@ -662,6 +662,15 @@ function cardHTML(l) {
 function setcat(c) { activeCat = c; render(); }
 
 render();
+
+// Event delegation for drag — works after every re-render since listener is on stable container
+document.getElementById("main").addEventListener("touchstart", function(e) {
+  const handle = e.target.closest(".drag-handle");
+  if (!handle) return;
+  const card = handle.closest(".card");
+  if (!card || !card.dataset.url) return;
+  dragStart(e, card, card.dataset.url);
+}, { passive: false });
 </script>
 </body>
 </html>
