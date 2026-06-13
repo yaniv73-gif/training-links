@@ -9,6 +9,7 @@
 <title>קישורי אימון</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  @keyframes spin { to { transform: rotate(360deg); } }
   body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; background: #f5f5f0; color: #1a1a1a; min-height: 100vh; }
 
   header { background: #fff; border-bottom: 1px solid #e5e5e0; padding: 16px 16px 0; position: sticky; top: 0; z-index: 100; }
@@ -231,7 +232,12 @@
 <body>
 
 <header>
-  <h1>קישורי <span>אימון</span></h1>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+    <h1 style="margin-bottom:0">קישורי <span>אימון</span></h1>
+    <button id="syncBtn" onclick="runSync()" style="display:flex;align-items:center;gap:6px;background:#c7171a;color:#fff;border:none;border-radius:10px;padding:8px 14px;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer">
+      <span id="syncIcon">↻</span> סנכרון
+    </button>
+  </div>
   <div class="search-row">
     <div class="search-bar" style="flex:1">
       <span class="search-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></span>
@@ -322,9 +328,57 @@ const PLATFORM_SVG = {
   yt: `<svg viewBox="0 0 24 24" fill="#FF0000"><path d="M23.498 6.186a3.016 3.016 0 00-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 00.502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 002.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 002.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>`
 };
 
+const SYNC_TOKEN = "";  // fill in after setup — see instructions
+const SYNC_REPO  = "yaniv73-gif/training-links";
+
 let activeCat = "הכל";
 let editingUrl = "";
 const expandedSet = new Set();
+
+function showToast(msg, color) {
+  let t = document.getElementById("toast");
+  if (!t) {
+    t = document.createElement("div");
+    t.id = "toast";
+    t.style.cssText = "position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;z-index:999;transition:opacity 0.3s;white-space:nowrap";
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.background = color || "#333";
+  t.style.opacity = "1";
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.style.opacity = "0", 3000);
+}
+
+async function runSync() {
+  if (!SYNC_TOKEN) {
+    showToast("⚙️ Sync token not configured yet", "#888");
+    return;
+  }
+  const btn = document.getElementById("syncBtn");
+  const icon = document.getElementById("syncIcon");
+  btn.disabled = true;
+  icon.style.display = "inline-block";
+  icon.style.animation = "spin 1s linear infinite";
+  showToast("מסנכרן...", "#555");
+  try {
+    const res = await fetch(`https://api.github.com/repos/${SYNC_REPO}/actions/workflows/sync.yml/dispatches`, {
+      method: "POST",
+      headers: { Authorization: `token ${SYNC_TOKEN}`, "Content-Type": "application/json", "User-Agent": "training-app" },
+      body: JSON.stringify({ ref: "main" })
+    });
+    if (res.status === 204) {
+      showToast("✓ סנכרון החל — יעודכן תוך דקה", "#2a9d5c");
+      setTimeout(() => window.location.reload(), 60000);
+    } else {
+      showToast("שגיאה בסנכרון", "#c7171a");
+    }
+  } catch(e) {
+    showToast("שגיאת רשת", "#c7171a");
+  }
+  btn.disabled = false;
+  icon.style.animation = "";
+}
 
 function descKey(url) { return "desc_" + url; }
 function getDesc(url) { return localStorage.getItem(descKey(url)) || ""; }
