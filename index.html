@@ -123,6 +123,12 @@
     transition: transform 0.2s;
   }
   .expand-btn.expanded { transform: rotate(180deg); }
+  .card-btns {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+  }
   .edit-btn {
     background: none;
     border: none;
@@ -667,12 +673,12 @@ function cardHTML(l) {
           <div class="card-title">${l.title}</div>
           <div class="card-meta">${l.date}${desc ? ' <span class="has-desc-dot"></span>' : ""}</div>
         </div>
-        <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
-          <button class="edit-btn" onclick="openModal('${escapedUrl}','${escapedTitle}',event)" aria-label="ערוך" style="color:#ddd;font-size:14px">✏️</button>
-          <button class="delete-btn" onclick="deleteLink('${escapedUrl}',event)" aria-label="מחק">🗑</button>
-          <div class="card-arrow"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/></svg></div>
-        </div>
+        <div class="card-arrow"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/></svg></div>
       </a>
+      <div class="card-btns">
+        <button class="edit-btn" onclick="openModal('${escapedUrl}','${escapedTitle}',event)" aria-label="ערוך">✏️</button>
+        <button class="delete-btn" onclick="deleteLink('${escapedUrl}',event)" aria-label="מחק">🗑</button>
+      </div>
       <div class="drag-handle">${dragHandleSVG}</div>
     </div>
     ${descRow}
