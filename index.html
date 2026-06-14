@@ -664,7 +664,7 @@ function cardHTML(l) {
     <div class="card-desc-row">
       <div class="card-desc-text ${isExpanded ? "expanded" : ""}" onclick="toggleExpand('${escapedUrl}',event)">${desc}</div>
       <button class="expand-btn ${isExpanded ? "expanded" : ""}" onclick="toggleExpand('${escapedUrl}',event)" aria-label="הרחב">▾</button>
-      <button class="edit-btn" onclick="openModal('${escapedUrl}','${escapedTitle}',event)" aria-label="ערוך">✏️</button>
+      <button class="edit-btn" aria-label="ערוך">✏️</button>
     </div>` : "";
 
   const dragHandleSVG = `<svg width="14" height="20" viewBox="0 0 14 20" fill="currentColor"><circle cx="4" cy="5" r="1.8"/><circle cx="10" cy="5" r="1.8"/><circle cx="4" cy="10" r="1.8"/><circle cx="10" cy="10" r="1.8"/><circle cx="4" cy="15" r="1.8"/><circle cx="10" cy="15" r="1.8"/></svg>`;
@@ -679,7 +679,7 @@ function cardHTML(l) {
         <div class="card-arrow"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/></svg></div>
       </a>
       <div class="card-btns">
-        <button class="edit-btn" onclick="openModal('${escapedUrl}','${escapedTitle}',event)" aria-label="ערוך">✏️</button>
+        <button class="edit-btn" aria-label="ערוך">✏️</button>
         <button class="delete-btn" onclick="deleteLink('${escapedUrl}',event)" aria-label="מחק">🗑</button>
       </div>
       <div class="drag-handle">${dragHandleSVG}</div>
@@ -707,6 +707,23 @@ mainEl.addEventListener("mousedown", function(e) {
   const card = handle.closest(".card");
   if (!card || !card.dataset.url) return;
   onMouseDown(e, card, card.dataset.url);
+});
+mainEl.addEventListener("click", function(e) {
+  const btn = e.target.closest(".edit-btn");
+  if (!btn) return;
+  e.preventDefault();
+  e.stopPropagation();
+  const card = btn.closest(".card");
+  if (!card) return;
+  const url = card.dataset.url;
+  const link = LINKS.find(function(l) { return l.url === url; });
+  if (!link) return;
+  editingUrl = url;
+  document.getElementById("modalTitle").textContent = link.title;
+  document.getElementById("modalTextarea").value = getDesc(link);
+  modalOpenTime = Date.now();
+  document.getElementById("modalOverlay").classList.add("open");
+  setTimeout(function() { document.getElementById("modalTextarea").focus(); }, 100);
 });
 </script>
 </body>
