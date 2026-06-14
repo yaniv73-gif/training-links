@@ -664,7 +664,6 @@ function cardHTML(l) {
     <div class="card-desc-row">
       <div class="card-desc-text ${isExpanded ? "expanded" : ""}" onclick="toggleExpand('${escapedUrl}',event)">${desc}</div>
       <button class="expand-btn ${isExpanded ? "expanded" : ""}" onclick="toggleExpand('${escapedUrl}',event)" aria-label="הרחב">▾</button>
-      <button class="edit-btn" aria-label="ערוך">✏️</button>
     </div>` : "";
 
   const dragHandleSVG = `<svg width="14" height="20" viewBox="0 0 14 20" fill="currentColor"><circle cx="4" cy="5" r="1.8"/><circle cx="10" cy="5" r="1.8"/><circle cx="4" cy="10" r="1.8"/><circle cx="10" cy="10" r="1.8"/><circle cx="4" cy="15" r="1.8"/><circle cx="10" cy="15" r="1.8"/></svg>`;
