@@ -360,6 +360,7 @@ const SYNC_REPO  = "yaniv73-gif/training-links";
 
 let activeCat = "הכל";
 let editingUrl = "";
+let modalOpenTime = 0;
 const expandedSet = new Set();
 
 let deletedUrls = new Set(JSON.parse(localStorage.getItem("deletedUrls") || "[]"));
@@ -584,11 +585,13 @@ function openModal(url, title, e) {
   const linkObj = LINKS.find(l => l.url === url) || { url, desc: "" };
   document.getElementById("modalTitle").textContent = title;
   document.getElementById("modalTextarea").value = getDesc(linkObj);
+  modalOpenTime = Date.now();
   document.getElementById("modalOverlay").classList.add("open");
   setTimeout(() => document.getElementById("modalTextarea").focus(), 100);
 }
 
 function closeModal(e) {
+  if (e && Date.now() - modalOpenTime < 500) return;
   if (e && e.target !== document.getElementById("modalOverlay")) return;
   document.getElementById("modalOverlay").classList.remove("open");
   editingUrl = "";
