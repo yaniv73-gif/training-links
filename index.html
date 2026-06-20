@@ -246,6 +246,35 @@
     font-family: inherit;
     cursor: pointer;
   }
+
+  .dashboard {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    padding: 4px 0 20px;
+  }
+  .dash-tile {
+    background: #fff;
+    border-radius: 18px;
+    border: 1.5px solid #f0f0f0;
+    padding: 24px 16px 18px;
+    text-align: center;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+    transition: all 0.15s;
+    position: relative;
+  }
+  .dash-tile:active { transform: scale(0.96); border-color: #c7171a; box-shadow: 0 2px 12px rgba(199,23,26,0.15); }
+  .dash-emoji { font-size: 42px; margin-bottom: 6px; }
+  .dash-name { font-size: 18px; font-weight: 700; color: #1a1a1a; }
+  .dash-count { font-size: 13px; color: #c7171a; font-weight: 600; margin-top: 2px; }
+  .dash-date { font-size: 11px; color: #bbb; margin-top: 3px; }
+  .dash-del { position:absolute; top:8px; left:10px; background:none; border:none; cursor:pointer; color:#e0e0e0; font-size:14px; padding:4px; line-height:1; }
+  .dash-del:active { color:#c7171a; }
 </style>
 </head>
 <body>
@@ -645,10 +674,23 @@ function render() {
     const byCat = {};
     CATS_ORDER.slice(1).forEach(c => byCat[c] = []);
     filtered.forEach(l => { const c = getLinkCat(l); if (byCat[c]) byCat[c].push(l); else byCat[c] = [l]; });
-    main.innerHTML = CATS_ORDER.slice(1).filter(c => byCat[c] && byCat[c].length).map(c =>
-      `<div class="section-title" data-cat="${c}"><span class="section-title-text">${c} (${byCat[c].length})</span><button class="delete-cat-btn" onclick="deleteCat('${c}',event)" title="מחק קטגוריה">🗑</button></div>` +
-      byCat[c].map(l => cardHTML(l)).join("")
-    ).join("");
+    const CAT_EMOJI = {
+      "תאילנדי":"🥊","שקים":"👊","MMA":"🥋","ילדים":"👦","מוביליטי":"🤸","בעיטות":"🦵","שוטרים":"🛡️"
+    };
+    function parseD(d) { var p=d.split('/'); return new Date(p[2],p[1]-1,p[0]); }
+    main.innerHTML = '<div class="dashboard">' +
+      CATS_ORDER.slice(1).filter(c => byCat[c] && byCat[c].length).map(c => {
+        const ls = byCat[c];
+        const latest = ls.reduce((a,b) => parseD(a.date) > parseD(b.date) ? a : b);
+        return `<div class="dash-tile" onclick="setcat('${c}')">
+          <button class="dash-del" onclick="deleteCat('${c}',event)" title="מחק קטגוריה">🗑</button>
+          <div class="dash-emoji">${CAT_EMOJI[c]||'📌'}</div>
+          <div class="dash-name">${c}</div>
+          <div class="dash-count">${ls.length} קישורים</div>
+          <div class="dash-date">עודכן ${latest.date}</div>
+        </div>`;
+      }).join('') +
+    '</div>';
   } else {
     main.innerHTML = filtered.length ? filtered.map(l => cardHTML(l)).join("") : `<div class="empty">לא נמצאו קישורים</div>`;
   }
