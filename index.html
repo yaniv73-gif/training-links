@@ -831,5 +831,12 @@ mainEl.addEventListener("click", function(e) {
   setTimeout(function() { document.getElementById("modalTextarea").focus(); }, 100);
 });
 </script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('/training-links/sw.js');
+      });
+    }
+  </script>
 </body>
 </html>
