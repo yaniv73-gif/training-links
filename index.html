@@ -706,8 +706,8 @@ function render() {
       CATS_ORDER.slice(1).filter(c => byCat[c] && byCat[c].length).map(c => {
         const ls = byCat[c];
         const latest = ls.reduce((a,b) => parseD(a.date) > parseD(b.date) ? a : b);
-        return `<div class="dash-tile" onclick="setcat('${c}')">
-          <button class="dash-del" onclick="deleteCat('${c}',event)" title="מחק קטגוריה">🗑</button>
+        return `<div class="dash-tile" data-cat="${c}">
+          <button class="dash-del" data-delcat="${c}" title="מחק קטגוריה">🗑</button>
           <div class="dash-emoji">${CAT_EMOJI[c]||'📌'}</div>
           <div class="dash-name">${c}</div>
           <div class="dash-count">${ls.length} קישורים</div>
@@ -793,6 +793,20 @@ mainEl.addEventListener("mousedown", function(e) {
   const card = handle.closest(".card");
   if (!card || !card.dataset.url) return;
   onMouseDown(e, card, card.dataset.url);
+});
+mainEl.addEventListener("click", function(e) {
+  // Dashboard tile click
+  const tile = e.target.closest(".dash-tile");
+  if (tile && tile.dataset.cat && !e.target.closest(".dash-del")) {
+    setcat(tile.dataset.cat);
+    return;
+  }
+  // Dashboard delete button
+  const delBtn = e.target.closest(".dash-del");
+  if (delBtn && delBtn.dataset.delcat) {
+    deleteCat(delBtn.dataset.delcat, e);
+    return;
+  }
 });
 mainEl.addEventListener("click", function(e) {
   const btn = e.target.closest(".edit-btn");
