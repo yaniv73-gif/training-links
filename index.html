@@ -411,7 +411,7 @@ const LINKS = [
   { date:"14/06/2026", title:"לאימון גיוגיטסו חצי גארד ", cat:"ג'יוג'יטסו", url:"https://rogergracietv.com/programs/half-guard-replacement-68da44", platform:"other", desc:"החזרה לגאקד מלא גי" }
 ];
 
-const CATS_ORDER = ["הכל","מועדפים","תאילנדי","שקים","MMA","ילדים","מוביליטי","בעיטות","שוטרים","ג'יוג'יטסו"];
+const CATS_ORDER = ["הכל","מועדפים","תאילנדי","שקים","MMA","ילדים","ילדים BJJ","ילדים MMA","ילדים מואי תאי","מוביליטי","בעיטות","שוטרים","ג'יוג'יטסו"];
 
 const LOGO_IMG = `<img src="logo.png" style="width:26px;height:26px;object-fit:contain;border-radius:4px">`;
 const PLATFORM_SVG = {
@@ -713,7 +713,7 @@ function render() {
     CATS_ORDER.slice(1).forEach(c => byCat[c] = []);
     filtered.forEach(l => { const c = getLinkCat(l); if (byCat[c]) byCat[c].push(l); else byCat[c] = [l]; });
     const CAT_EMOJI = {
-      "מועדפים":"❤️","תאילנדי":"🥊","שקים":"👊","MMA":"🥋","ילדים":"👦","מוביליטי":"🤸","בעיטות":"🦵","שוטרים":"🛡️","ג'יוג'יטסו":"🤼"
+      "מועדפים":"❤️","תאילנדי":"🥊","שקים":"👊","MMA":"🥋","ילדים":"👦","ילדים BJJ":"🤼","ילדים MMA":"🥋","ילדים מואי תאי":"🥊","מוביליטי":"🤸","בעיטות":"🦵","שוטרים":"🛡️","ג'יוג'יטסו":"🤼"
     };
     function parseD(d) { var p=d.split('/'); return new Date(p[2],p[1]-1,p[0]); }
     main.innerHTML = '<div class="dashboard">' +
