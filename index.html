@@ -667,6 +667,13 @@ function render() {
     return catOk && qOk;
   });
 
+  // Sort newest first when viewing a specific category
+  if (activeCat !== "הכל") {
+    filtered.sort(function(a,b) {
+      function pd(d){var p=d.split('/');return new Date(p[2],p[1]-1,p[0]);}
+      return pd(b.date)-pd(a.date);
+    });
+  }
   document.getElementById("countLabel").textContent = `${filtered.length} קישורים`;
 
   const main = document.getElementById("main");
