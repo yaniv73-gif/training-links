@@ -394,11 +394,11 @@ const LINKS = [
   { date:"29/08/2025", title:"לאימון מוביליטי", cat:"מוביליטי", url:"https://www.facebook.com/share/r/1ZHEut7NCE/", platform:"fb" },
   { date:"15/08/2025", title:"לאימון תאילנדי", cat:"תאילנדי", url:"https://www.facebook.com/share/r/1B17SDGwYT/", platform:"fb" },
   { date:"22/07/2025", title:"לאימון מוביליטי", cat:"מוביליטי", url:"https://www.facebook.com/share/r/1CSyBwtWCk/", platform:"fb" },
-  { date:"14/06/2026", title:"לאימון גיוגיטסו חצי גארד ", cat:"תאילנדי", url:"https://rogergracietv.com/programs/half-guard-back-take-3-ffa8af", platform:"other", desc:"תפיסת גב שהטופס הולך לקימורה" },
-  { date:"14/06/2026", title:"לאימון גיוגיטסו חצי גארד ", cat:"תאילנדי", url:"https://rogergracietv.com/programs/half-guard-replacement-68da44", platform:"other", desc:"החזרה לגאקד מלא גי" }
+  { date:"14/06/2026", title:"לאימון גיוגיטסו חצי גארד ", cat:"ג'יוג'יטסו", url:"https://rogergracietv.com/programs/half-guard-back-take-3-ffa8af", platform:"other", desc:"תפיסת גב שהטופס הולך לקימורה" },
+  { date:"14/06/2026", title:"לאימון גיוגיטסו חצי גארד ", cat:"ג'יוג'יטסו", url:"https://rogergracietv.com/programs/half-guard-replacement-68da44", platform:"other", desc:"החזרה לגאקד מלא גי" }
 ];
 
-const CATS_ORDER = ["הכל","תאילנדי","שקים","MMA","ילדים","מוביליטי","בעיטות","שוטרים"];
+const CATS_ORDER = ["הכל","תאילנדי","שקים","MMA","ילדים","מוביליטי","בעיטות","שוטרים","ג'יוג'יטסו"];
 
 const LOGO_IMG = `<img src="logo.png" style="width:26px;height:26px;object-fit:contain;border-radius:4px">`;
 const PLATFORM_SVG = {
@@ -699,7 +699,7 @@ function render() {
     CATS_ORDER.slice(1).forEach(c => byCat[c] = []);
     filtered.forEach(l => { const c = getLinkCat(l); if (byCat[c]) byCat[c].push(l); else byCat[c] = [l]; });
     const CAT_EMOJI = {
-      "תאילנדי":"🥊","שקים":"👊","MMA":"🥋","ילדים":"👦","מוביליטי":"🤸","בעיטות":"🦵","שוטרים":"🛡️"
+      "תאילנדי":"🥊","שקים":"👊","MMA":"🥋","ילדים":"👦","מוביליטי":"🤸","בעיטות":"🦵","שוטרים":"🛡️","ג'יוג'יטסו":"🤼"
     };
     function parseD(d) { var p=d.split('/'); return new Date(p[2],p[1]-1,p[0]); }
     main.innerHTML = '<div class="dashboard">' +
