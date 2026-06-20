@@ -275,6 +275,23 @@
   .dash-date { font-size: 11px; color: #bbb; margin-top: 3px; }
   .dash-del { position:absolute; top:8px; left:10px; background:none; border:none; cursor:pointer; color:#e0e0e0; font-size:14px; padding:4px; line-height:1; }
   .dash-del:active { color:#c7171a; }
+
+  .date-divider {
+    font-size: 11px;
+    font-weight: 600;
+    color: #bbb;
+    text-align: center;
+    margin: 14px 0 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .date-divider::before, .date-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: #ececec;
+  }
 </style>
 </head>
 <body>
@@ -699,7 +716,20 @@ function render() {
       }).join('') +
     '</div>';
   } else {
-    main.innerHTML = filtered.length ? filtered.map(l => cardHTML(l)).join("") : `<div class="empty">לא נמצאו קישורים</div>`;
+    if (!filtered.length) {
+      main.innerHTML = '<div class="empty">לא נמצאו קישורים</div>';
+    } else {
+      let html = '';
+      let lastDate = null;
+      filtered.forEach(function(l) {
+        if (l.date !== lastDate) {
+          html += `<div class="date-divider">${l.date}</div>`;
+          lastDate = l.date;
+        }
+        html += cardHTML(l);
+      });
+      main.innerHTML = html;
+    }
   }
 }
 
