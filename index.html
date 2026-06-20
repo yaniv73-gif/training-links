@@ -143,6 +143,15 @@
     line-height: 1;
   }
   .edit-btn:active { color: #c7171a; }
+  .fav-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 2px 4px;
+    flex-shrink: 0;
+    font-size: 14px;
+    line-height: 1;
+  }
   .delete-btn { background:none; border:none; cursor:pointer; padding:2px 4px; color:#ddd; flex-shrink:0; font-size:14px; line-height:1; }
   .delete-btn:active { color:#c7171a; }
   .card-row { display:flex; align-items:stretch; }
@@ -402,7 +411,7 @@ const LINKS = [
   { date:"14/06/2026", title:"לאימון גיוגיטסו חצי גארד ", cat:"ג'יוג'יטסו", url:"https://rogergracietv.com/programs/half-guard-replacement-68da44", platform:"other", desc:"החזרה לגאקד מלא גי" }
 ];
 
-const CATS_ORDER = ["הכל","תאילנדי","שקים","MMA","ילדים","מוביליטי","בעיטות","שוטרים","ג'יוג'יטסו"];
+const CATS_ORDER = ["הכל","מועדפים","תאילנדי","שקים","MMA","ילדים","מוביליטי","בעיטות","שוטרים","ג'יוג'יטסו"];
 
 const LOGO_IMG = `<img src="logo.png" style="width:26px;height:26px;object-fit:contain;border-radius:4px">`;
 const PLATFORM_SVG = {
@@ -667,6 +676,7 @@ function saveDesc() {
 function getCounts() {
   const visible = getOrderedLinks();
   const counts = { "הכל": visible.length };
+  counts["מועדפים"] = visible.filter(l => isFav(l.url)).length;
   visible.forEach(l => { const c = getLinkCat(l); counts[c] = (counts[c] || 0) + 1; });
   return counts;
 }
@@ -682,7 +692,7 @@ function render() {
   ).join("");
 
   let filtered = getOrderedLinks().filter(l => {
-    const catOk = activeCat === "הכל" || getLinkCat(l) === activeCat;
+    const catOk = activeCat === "הכל" || (activeCat === "מועדפים" ? isFav(l.url) : getLinkCat(l) === activeCat);
     const desc = getDesc(l).toLowerCase();
     const qOk = !q || l.title.toLowerCase().includes(q) || getLinkCat(l).toLowerCase().includes(q) || l.date.includes(q) || desc.includes(q);
     return catOk && qOk;
@@ -703,7 +713,7 @@ function render() {
     CATS_ORDER.slice(1).forEach(c => byCat[c] = []);
     filtered.forEach(l => { const c = getLinkCat(l); if (byCat[c]) byCat[c].push(l); else byCat[c] = [l]; });
     const CAT_EMOJI = {
-      "תאילנדי":"🥊","שקים":"👊","MMA":"🥋","ילדים":"👦","מוביליטי":"🤸","בעיטות":"🦵","שוטרים":"🛡️","ג'יוג'יטסו":"🤼"
+      "מועדפים":"❤️","תאילנדי":"🥊","שקים":"👊","MMA":"🥋","ילדים":"👦","מוביליטי":"🤸","בעיטות":"🦵","שוטרים":"🛡️","ג'יוג'יטסו":"🤼"
     };
     function parseD(d) { var p=d.split('/'); return new Date(p[2],p[1]-1,p[0]); }
     main.innerHTML = '<div class="dashboard">' +
@@ -745,6 +755,16 @@ function toggleExpand(url, e) {
   render();
 }
 
+function getFavs() { try { return JSON.parse(localStorage.getItem('favUrls')||'[]'); } catch(e) { return []; } }
+function isFav(url) { return getFavs().indexOf(url) >= 0; }
+function toggleFav(url, btn) {
+  var favs = getFavs();
+  var i = favs.indexOf(url);
+  if (i >= 0) favs.splice(i, 1); else favs.push(url);
+  localStorage.setItem('favUrls', JSON.stringify(favs));
+  if (btn) btn.textContent = isFav(url) ? '❤️' : '🤍';
+  if (activeCat === 'מועדפים') render();
+}
 function cardHTML(l) {
   const desc = getDesc(l);
   const isExpanded = expandedSet.has(l.url);
@@ -769,6 +789,7 @@ function cardHTML(l) {
         <div class="card-arrow"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/></svg></div>
       </a>
       <div class="card-btns">
+        <button class="fav-btn" aria-label="מועדף">${isFav(l.url) ? '❤️' : '🤍'}</button>
         <button class="edit-btn" aria-label="ערוך">✏️</button>
         <button class="delete-btn" onclick="deleteLink('${escapedUrl}',event)" aria-label="מחק">🗑</button>
       </div>
@@ -813,6 +834,16 @@ mainEl.addEventListener("click", function(e) {
   const delBtn = e.target.closest(".dash-del");
   if (delBtn && delBtn.dataset.delcat) {
     deleteCat(delBtn.dataset.delcat, e);
+    return;
+  }
+});
+mainEl.addEventListener("click", function(e) {
+  const favBtn = e.target.closest(".fav-btn");
+  if (favBtn) {
+    e.preventDefault(); e.stopPropagation();
+    const card = favBtn.closest(".card");
+    if (!card) return;
+    toggleFav(card.dataset.url, favBtn);
     return;
   }
 });
