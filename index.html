@@ -690,9 +690,11 @@ function saveDesc() {
 
 function getCounts() {
   const visible = getOrderedLinks();
+  const KIDS_SUBS = ['ילדים BJJ', 'ילדים MMA', 'ילדים איגרוף תאילנדי'];
   const counts = { "הכל": visible.length };
   counts["מועדפים"] = visible.filter(l => isFav(l.url)).length;
   visible.forEach(l => { const c = getLinkCat(l); counts[c] = (counts[c] || 0) + 1; });
+  KIDS_SUBS.forEach(sc => { if (counts[sc]) { counts['ילדים'] = (counts['ילדים'] || 0) + counts[sc]; } });
   return counts;
 }
 
@@ -700,16 +702,19 @@ function render() {
   const q = document.getElementById("searchInput").value.trim().toLowerCase();
   const counts = getCounts();
 
-  document.getElementById("catBar").innerHTML = CATS_ORDER.filter(c => counts[c]).map(c => {
-    const isKidsSub = c.startsWith('ילדים ');
-    const label = isKidsSub ? c.replace('ילדים ', '') : c;
-    return `<button class="cat-btn ${activeCat===c?"active":""} ${isKidsSub?"kids-sub":""}" data-cat="${c}">
-      <span>${label}</span><span class="count">${counts[c]||0}</span>
+  const KIDS_SUBS_NAV = ['ילדים BJJ', 'ילדים MMA', 'ילדים איגרוף תאילנדי'];
+  const kidsActive = KIDS_SUBS_NAV.includes(activeCat);
+  document.getElementById("catBar").innerHTML = CATS_ORDER.filter(c => counts[c] && !KIDS_SUBS_NAV.includes(c)).map(c => {
+    const isActive = activeCat === c || (c === 'ילדים' && kidsActive);
+    return `<button class="cat-btn ${isActive?"active":""}" data-cat="${c}">
+      <span>${c}</span><span class="count">${counts[c]||0}</span>
     </button>`;
   }).join("");
 
   let filtered = getOrderedLinks().filter(l => {
-    const catOk = activeCat === "הכל" || (activeCat === "מועדפים" ? isFav(l.url) : getLinkCat(l) === activeCat);
+    const KIDS_SUBS_FILTER = ['ילדים BJJ', 'ילדים MMA', 'ילדים איגרוף תאילנדי'];
+    const lcat = getLinkCat(l);
+    const catOk = activeCat === "הכל" || (activeCat === "מועדפים" ? isFav(l.url) : activeCat === 'ילדים' ? (lcat === 'ילדים' || KIDS_SUBS_FILTER.includes(lcat)) : lcat === activeCat);
     const desc = getDesc(l).toLowerCase();
     const qOk = !q || l.title.toLowerCase().includes(q) || getLinkCat(l).toLowerCase().includes(q) || l.date.includes(q) || desc.includes(q);
     return catOk && qOk;
