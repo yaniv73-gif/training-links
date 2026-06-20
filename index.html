@@ -672,7 +672,7 @@ function render() {
   const counts = getCounts();
 
   document.getElementById("catBar").innerHTML = CATS_ORDER.filter(c => counts[c]).map(c =>
-    `<button class="cat-btn ${activeCat===c?"active":""}" onclick="setcat('${c}')">
+    `<button class="cat-btn ${activeCat===c?"active":""}" data-cat="${c}">
       <span>${c}</span><span class="count">${counts[c]||0}</span>
     </button>`
   ).join("");
@@ -779,6 +779,10 @@ function setcat(c) { activeCat = c; render(); }
 render();
 
 // Event delegation for drag — stable container survives re-renders
+document.getElementById("catBar").addEventListener("click", function(e) {
+  const btn = e.target.closest(".cat-btn");
+  if (btn && btn.dataset.cat) setcat(btn.dataset.cat);
+});
 const mainEl = document.getElementById("main");
 mainEl.addEventListener("touchstart", function(e) {
   const handle = e.target.closest(".drag-handle");
