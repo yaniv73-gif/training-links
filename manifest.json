@@ -1,0 +1,17 @@
+{
+  "name": "FightLab Training",
+  "short_name": "FightLab",
+  "description": "קישורי אימון - FightLab BJJ & MMA",
+  "start_url": "/training-links/",
+  "scope": "/training-links/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#c7171a",
+  "background_color": "#f5f5f0",
+  "lang": "he",
+  "dir": "rtl",
+  "icons": [
+    { "src": "logo.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "logo.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
