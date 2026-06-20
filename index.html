@@ -287,6 +287,19 @@
   .dash-date { font-size: 11px; color: #bbb; margin-top: 3px; }
   .dash-del { position:absolute; top:8px; left:10px; background:none; border:none; cursor:pointer; color:#e0e0e0; font-size:14px; padding:4px; line-height:1; }
   .dash-del:active { color:#c7171a; }
+  .dash-tile-kids { grid-column: 1 / -1; flex-direction: row; flex-wrap: wrap; justify-content: flex-start; text-align: right; gap: 8px; padding: 16px; }
+  .dash-tile-kids .dash-emoji { font-size: 32px; margin-bottom: 0; }
+  .dash-tile-kids .kids-info { display: flex; flex-direction: column; gap: 2px; flex: 1; }
+  .dash-tile-kids .dash-name { font-size: 17px; }
+  .dash-tile-kids .dash-count { font-size: 12px; }
+  .dash-tile-kids .dash-date { font-size: 11px; }
+  .kids-sub-chips { display: flex; gap: 6px; flex-wrap: wrap; width: 100%; margin-top: 4px; }
+  .kids-sub-chip { background: #fff0f0; color: #c7171a; border: 1.5px solid #f0c0c0; border-radius: 14px; padding: 5px 14px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; }
+  .kids-sub-chip:active { background: #c7171a; color: #fff; }
+  .cat-btn.kids-sub { font-size: 11px; padding: 4px 10px; border-color: #f0c0c0; color: #c7171a; background: #fff8f8; }
+  .cat-btn.kids-sub.active { background: #c7171a; border-color: #c7171a; color: #fff; }
+  .cat-btn.kids-sub .count { background: #ffe0e0; color: #c7171a; }
+  .cat-btn.kids-sub.active .count { background: rgba(255,255,255,0.25); color: #fff; }
 
   .date-divider {
     font-size: 11px;
@@ -686,11 +699,13 @@ function render() {
   const q = document.getElementById("searchInput").value.trim().toLowerCase();
   const counts = getCounts();
 
-  document.getElementById("catBar").innerHTML = CATS_ORDER.filter(c => counts[c]).map(c =>
-    `<button class="cat-btn ${activeCat===c?"active":""}" data-cat="${c}">
-      <span>${c}</span><span class="count">${counts[c]||0}</span>
-    </button>`
-  ).join("");
+  document.getElementById("catBar").innerHTML = CATS_ORDER.filter(c => counts[c]).map(c => {
+    const isKidsSub = c.startsWith('ילדים ');
+    const label = isKidsSub ? c.replace('ילדים ', '') : c;
+    return `<button class="cat-btn ${activeCat===c?"active":""} ${isKidsSub?"kids-sub":""}" data-cat="${c}">
+      <span>${label}</span><span class="count">${counts[c]||0}</span>
+    </button>`;
+  }).join("");
 
   let filtered = getOrderedLinks().filter(l => {
     const catOk = activeCat === "הכל" || (activeCat === "מועדפים" ? isFav(l.url) : getLinkCat(l) === activeCat);
@@ -717,8 +732,33 @@ function render() {
       "מועדפים":"❤️","תאילנדי":"🥊","שקים":"👊","MMA":"🥋","ילדים":"👦","ילדים BJJ":"🤼","ילדים MMA":"🥋","ילדים איגרוף תאילנדי":"🥊","מוביליטי":"🤸","בעיטות":"🦵","שוטרים":"🛡️","ג'יוג'יטסו":"🤼"
     };
     function parseD(d) { var p=d.split('/'); return new Date(p[2],p[1]-1,p[0]); }
+    const KIDS_SUBS = ['ילדים BJJ', 'ילדים MMA', 'ילדים איגרוף תאילנדי'];
+    const hasKidsAny = byCat['ילדים'] || KIDS_SUBS.some(sc => byCat[sc] && byCat[sc].length);
     main.innerHTML = '<div class="dashboard">' +
-      CATS_ORDER.slice(1).filter(c => byCat[c] && byCat[c].length).map(c => {
+      CATS_ORDER.slice(1).filter(c => {
+        if (KIDS_SUBS.includes(c)) return false;
+        if (c === 'ילדים') return hasKidsAny;
+        return byCat[c] && byCat[c].length;
+      }).map(c => {
+        if (c === 'ילדים') {
+          const kidsLinks = byCat['ילדים'] || [];
+          const allKids = [...kidsLinks, ...KIDS_SUBS.flatMap(sc => byCat[sc] || [])];
+          const latest = allKids.length ? allKids.reduce((a,b) => parseD(a.date) > parseD(b.date) ? a : b) : null;
+          const totalCount = allKids.length;
+          const subChips = KIDS_SUBS.filter(sc => byCat[sc] && byCat[sc].length).map(sc =>
+            `<button class="kids-sub-chip" data-cat="${sc}">${sc.replace('ילדים ','')}</button>`
+          ).join('');
+          return `<div class="dash-tile dash-tile-kids" data-cat="ילדים">
+            <button class="dash-del" data-delcat="ילדים" title="מחק קטגוריה">🗑</button>
+            <div class="dash-emoji">👦</div>
+            <div class="kids-info">
+              <div class="dash-name">ילדים</div>
+              <div class="dash-count">${totalCount} קישורים</div>
+              ${latest ? `<div class="dash-date">עודכן ${latest.date}</div>` : ''}
+            </div>
+            ${subChips ? `<div class="kids-sub-chips">${subChips}</div>` : ''}
+          </div>`;
+        }
         const ls = byCat[c];
         const latest = ls.reduce((a,b) => parseD(a.date) > parseD(b.date) ? a : b);
         return `<div class="dash-tile" data-cat="${c}">
@@ -826,8 +866,10 @@ mainEl.addEventListener("mousedown", function(e) {
 });
 mainEl.addEventListener("click", function(e) {
   // Dashboard tile click
+  const subChip = e.target.closest(".kids-sub-chip");
+  if (subChip && subChip.dataset.cat) { setcat(subChip.dataset.cat); return; }
   const tile = e.target.closest(".dash-tile");
-  if (tile && tile.dataset.cat && !e.target.closest(".dash-del")) {
+  if (tile && tile.dataset.cat && !e.target.closest(".dash-del") && !e.target.closest(".kids-sub-chip")) {
     setcat(tile.dataset.cat);
     return;
   }
