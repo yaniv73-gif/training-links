@@ -287,6 +287,7 @@
   .dash-date { font-size: 11px; color: #bbb; margin-top: 3px; }
   .dash-del { position:absolute; top:8px; left:10px; background:none; border:none; cursor:pointer; color:#e0e0e0; font-size:14px; padding:4px; line-height:1; }
   .dash-del:active { color:#c7171a; }
+  .new-badge { position:absolute; top:8px; right:10px; background:#c7171a; color:#fff; border-radius:10px; font-size:10px; font-weight:700; padding:2px 7px; min-width:18px; text-align:center; line-height:16px; }
   .dash-tile-kids { grid-column: 1 / -1; flex-direction: row; flex-wrap: wrap; justify-content: flex-start; text-align: right; gap: 8px; padding: 16px; }
   .dash-tile-kids .dash-emoji { font-size: 32px; margin-bottom: 0; }
   .dash-tile-kids .kids-info { display: flex; flex-direction: column; gap: 2px; flex: 1; }
@@ -758,8 +759,10 @@ function render() {
           const subChips = KIDS_SUBS.filter(sc => byCat[sc] && byCat[sc].length).map(sc =>
             `<button class="kids-sub-chip" data-cat="${sc}">${sc.replace('ילדים ','')}</button>`
           ).join('');
+          const kidsNc = allKids.filter(l => isNew(l)).length;
           return `<div class="dash-tile dash-tile-kids" data-cat="ילדים">
             <button class="dash-del" data-delcat="ילדים" title="מחק קטגוריה">🗑</button>
+            ${kidsNc > 0 ? `<div class="new-badge">${kidsNc} חדש</div>` : ''}
             <div class="dash-emoji">👦</div>
             <div class="kids-info">
               <div class="dash-name">ילדים</div>
@@ -771,8 +774,10 @@ function render() {
         }
         const ls = byCat[c];
         const latest = ls.reduce((a,b) => parseD(a.date) > parseD(b.date) ? a : b);
+        const nc = ls.filter(l => isNew(l)).length;
         return `<div class="dash-tile" data-cat="${c}">
           <button class="dash-del" data-delcat="${c}" title="מחק קטגוריה">🗑</button>
+          ${nc > 0 ? `<div class="new-badge">${nc} חדש</div>` : ''}
           <div class="dash-emoji">${CAT_EMOJI[c]||'📌'}</div>
           <div class="dash-name">${c}</div>
           <div class="dash-count">${ls.length} קישורים</div>
@@ -806,6 +811,10 @@ function toggleExpand(url, e) {
   render();
 }
 
+function todayStr() { var d=new Date(); return ('0'+d.getDate()).slice(-2)+'/'+ ('0'+(d.getMonth()+1)).slice(-2)+'/'+d.getFullYear(); }
+var _lastVisit = localStorage.getItem('lastVisitDate') || '';
+function isNew(l) { if (!_lastVisit) return false; return parseD(l.date) > parseD(_lastVisit); }
+setTimeout(function() { localStorage.setItem('lastVisitDate', todayStr()); }, 4000);
 function getFavs() { try { return JSON.parse(localStorage.getItem('favUrls')||'[]'); } catch(e) { return []; } }
 function isFav(url) { return getFavs().indexOf(url) >= 0; }
 function toggleFav(url, btn) {
