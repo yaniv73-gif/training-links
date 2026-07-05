@@ -937,52 +937,7 @@ mainEl.addEventListener("click", function(e) {
   setTimeout(function() { document.getElementById("modalTextarea").focus(); }, 100);
 });
 </script>
-  <script>
-    // Auto-sync: trigger GitHub Actions if last sync was >6h ago
-    (function() {
-      var SIX_HOURS = 6 * 60 * 60 * 1000;
-      var last = parseInt(localStorage.getItem('lastAutoSync') || '0');
-      if (Date.now() - last < SIX_HOURS) return;
-      fetch('https://script.google.com/macros/s/AKfycbwjZUT4khSrnCJZzZzdlCvALjx7Q9lTu73G5HRLeg3aulNjBpW7MOYneBDxdQVXuA8vmg/exec?token=fightlab2026&action=sync')
-        .then(function(r) { return r.json(); })
-        .then(function(data) {
-          if (!data.triggered) return;
-          localStorage.setItem('lastAutoSync', Date.now().toString());
-          var banner = document.createElement('div');
-          banner.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;z-index:9999;display:flex;align-items:center;gap:8px;box-shadow:0 4px 16px rgba(0,0,0,0.2);white-space:nowrap;';
-          banner.innerHTML = '<span id="syncSpinner" style="display:inline-block">⟳</span> מסנכרן קישורים חדשים...';
-          document.body.appendChild(banner);
-          var deg = 0;
-          var spin = setInterval(function() { deg += 10; var s = document.getElementById('syncSpinner'); if(s) s.style.transform = 'rotate('+deg+'deg)'; }, 50);
-          setTimeout(function() {
-            clearInterval(spin);
-            banner.innerHTML = '✓ סנכרון הושלם — מרענן...';
-            setTimeout(function() { location.reload(); }, 1500);
-          }, 45000);
-        }).catch(function() {});
-      fetch('https://api.github.com/repos/yaniv73-gif/training-links/actions/workflows/sync.yml/dispatches', {
-        method: 'POST',
-        headers: { 'Authorization': 'token ' + wt, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ref: 'main' })
-      }).then(function(r) {
-        if (r.status !== 204) return;
-        localStorage.setItem('lastAutoSync', Date.now().toString());
-        var banner = document.createElement('div');
-        banner.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;z-index:9999;display:flex;align-items:center;gap:8px;box-shadow:0 4px 16px rgba(0,0,0,0.2);white-space:nowrap;';
-        banner.innerHTML = '<span id="syncSpinner" style="display:inline-block">⟳</span> מסנכרן קישורים חדשים...';
-        document.body.appendChild(banner);
-        // Spin the spinner
-        var deg = 0;
-        var spin = setInterval(function() { deg += 10; banner.querySelector('#syncSpinner').style.transform = 'rotate(' + deg + 'deg)'; }, 50);
-        // After 45s reload to pick up new links
-        setTimeout(function() {
-          clearInterval(spin);
-          banner.innerHTML = '✓ סנכרון הושלם — מרענן...';
-          setTimeout(function() { location.reload(); }, 1500);
-        }, 45000);
-      }).catch(function() {});
-    })();
-  </script>
+
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/training-links/sw.js').then(function(reg) {
