@@ -452,8 +452,7 @@ const PLATFORM_SVG = {
   other: LOGO_IMG
 };
 
-const SYNC_TOKEN = ["ghp_riM8YQWCFcVty","iOuNvXu6XnvAOzl7m3McYDn"].join("");
-const SYNC_REPO  = "yaniv73-gif/training-links";
+const SYNC_URL = "https://script.google.com/macros/s/AKfycbwjZUT4khSrnCJZzZzdlCvALjx7Q9lTu73G5HRLeg3aulNjBpW7MOYneBDxdQVXuA8vmg/exec?token=fightlab2026&action=sync";
 
 let activeCat = "הכל";
 let editingUrl = "";
@@ -643,10 +642,6 @@ function showToast(msg, color) {
 }
 
 async function runSync() {
-  if (!SYNC_TOKEN) {
-    showToast("⚙️ Sync token not configured yet", "#888");
-    return;
-  }
   const btn = document.getElementById("syncBtn");
   const icon = document.getElementById("syncIcon");
   btn.disabled = true;
@@ -654,14 +649,10 @@ async function runSync() {
   icon.style.animation = "spin 1s linear infinite";
   showToast("מסנכרן...", "#555");
   try {
-    const res = await fetch(`https://api.github.com/repos/${SYNC_REPO}/actions/workflows/sync.yml/dispatches`, {
-      method: "POST",
-      headers: { Authorization: `token ${SYNC_TOKEN}`, "Content-Type": "application/json", "User-Agent": "training-app" },
-      body: JSON.stringify({ ref: "main" })
-    });
-    if (res.status === 204) {
-      showToast("✓ סנכרון החל — יעודכן תוך דקה", "#2a9d5c");
-      setTimeout(() => window.location.reload(), 60000);
+    const res = await fetch(SYNC_URL);
+    const data = await res.json();
+    if (data.triggered) {
+      showToast("✓ סנכרון החל — טען מחדש עוד דקה", "#2a9d5c");
     } else {
       showToast("שגיאה בסנכרון", "#c7171a");
     }
@@ -941,11 +932,7 @@ mainEl.addEventListener("click", function(e) {
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/training-links/sw.js').then(function(reg) {
-        reg.update(); // update check
-      });
-      // When new SW takes over, reload to get fresh content
-      navigator.serviceWorker.addEventListener('controllerchange', function() {
-        window.location.reload();
+        reg.update();
       });
     }
   </script>
