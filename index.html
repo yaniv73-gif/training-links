@@ -941,7 +941,7 @@ mainEl.addEventListener("click", function(e) {
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/training-links/sw.js').then(function(reg) {
-        reg.update(); // check for new SW on every load
+        reg.update(); // update check
       });
       // When new SW takes over, reload to get fresh content
       navigator.serviceWorker.addEventListener('controllerchange', function() {
