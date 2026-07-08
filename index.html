@@ -935,7 +935,7 @@ mainEl.addEventListener("click", function(e) {
 
   <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/training-links/sw.js').then(function(reg) {
+      navigator.serviceWorker.register('/training-links/sw.js', { updateViaCache: 'none' }).then(function(reg) {
         reg.update();
       });
     }
