@@ -1,4 +1,4 @@
-const CACHE = 'fightlab-v2';
+const CACHE = 'fightlab-v3';
 const STATIC = ['/training-links/logo.png'];
 
 self.addEventListener('install', e => {
