@@ -818,6 +818,7 @@ function toggleExpand(url, e) {
 
 function todayStr() { var d=new Date(); return ('0'+d.getDate()).slice(-2)+'/'+ ('0'+(d.getMonth()+1)).slice(-2)+'/'+d.getFullYear(); }
 var _lastVisit = localStorage.getItem('lastVisitDate') || '';
+function parseD(d) { var p=d.split("/"); return new Date(p[2],p[1]-1,p[0]); }
 function isNew(l) { if (!_lastVisit) return false; return parseD(l.date) > parseD(_lastVisit); }
 setTimeout(function() { localStorage.setItem('lastVisitDate', todayStr()); }, 4000);
 function getFavs() { try { return JSON.parse(localStorage.getItem('favUrls')||'[]'); } catch(e) { return []; } }
