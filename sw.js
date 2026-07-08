@@ -1,5 +1,5 @@
-const CACHE = 'fightlab-v3';
-const STATIC = ['/training-links/logo.png'];
+const CACHE = 'fightlab-v4';
+const STATIC = ['/training-links/', '/training-links/logo.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(STATIC)));
@@ -15,7 +15,6 @@ self.addEventListener('activate', e => {
 
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
-  // Network-first for HTML — always get fresh content from server
   if (e.request.mode === 'navigate' ||
       url.pathname.endsWith('.html') ||
       url.pathname === '/training-links/' ||
@@ -29,7 +28,6 @@ self.addEventListener('fetch', e => {
     );
     return;
   }
-  // Cache-first for static assets
   e.respondWith(
     caches.match(e.request).then(cached => cached || fetch(e.request))
   );
