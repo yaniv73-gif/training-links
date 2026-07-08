@@ -1,4 +1,4 @@
-// v6 - nukes all caches and force-reloads all clients on activation
+// v6 - clears all caches and force-reloads all clients on activation
 self.addEventListener('install', () => self.skipWaiting());
 
 self.addEventListener('activate', e => {
