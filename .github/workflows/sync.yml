@@ -1,6 +1,8 @@
 name: Sync Training Links
 on:
   workflow_dispatch:
+  schedule:
+    - cron: '0 4 * * *'
 jobs:
   sync:
     runs-on: ubuntu-latest
