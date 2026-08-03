@@ -323,11 +323,14 @@
 <body>
 
 <header>
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+  <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px">
     <h1 style="margin-bottom:0">F<span>LL</span></h1>
-    <button id="syncBtn" onclick="runSync()" style="display:flex;align-items:center;gap:6px;background:#c7171a;color:#fff;border:none;border-radius:10px;padding:8px 14px;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer">
-      <span id="syncIcon">↻</span> סנכרון
-    </button>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+      <button id="syncBtn" onclick="runSync()" style="display:flex;align-items:center;gap:6px;background:#c7171a;color:#fff;border:none;border-radius:10px;padding:8px 14px;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer">
+        <span id="syncIcon">↻</span> סנכרון
+      </button>
+      <span id="syncStatus" style="font-size:11px;color:#aaa;display:none"></span>
+    </div>
   </div>
   <div class="search-row">
     <div class="search-bar" style="flex:1">
@@ -488,7 +491,7 @@ const PLATFORM_SVG = {
   other: LOGO_IMG
 };
 
-const SYNC_URL = "https://script.google.com/macros/s/AKfycbwjZUT4khSrnCJZzZzdlCvALjx7Q9lTu73G5HRLeg3aulNjBpW7MOYneBDxdQVXuA8vmg/exec?token=fightlab2026&action=sync";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycby0rr63GDi5Mv_JmZ6Yx-XamNGamm6i_PUVDwQ7DbNTv4cg1aTcbWyCXebKSD4YYyHpQQ/exec";
 
 let activeCat = "הכל";
 let editingUrl = "";
@@ -677,6 +680,23 @@ function showToast(msg, color) {
   t._timer = setTimeout(() => t.style.opacity = "0", 3000);
 }
 
+function syncDateStr() { var d=new Date(); return ('0'+d.getDate()).slice(-2)+'/'+ ('0'+(d.getMonth()+1)).slice(-2)+'/'+d.getFullYear(); }
+function saveSyncStatus(added) {
+  localStorage.setItem('lastSync', JSON.stringify({date: syncDateStr(), added: added}));
+  renderSyncStatus();
+}
+function renderSyncStatus() {
+  var el = document.getElementById('syncStatus');
+  if (!el) return;
+  var s = JSON.parse(localStorage.getItem('lastSync') || 'null');
+  if (s) {
+    el.textContent = 'סונכרן: ' + s.date + (s.added > 0 ? ' · ' + s.added + ' חדש' : '');
+    el.style.display = '';
+  } else {
+    el.style.display = 'none';
+  }
+}
+
 async function runSync() {
   const btn = document.getElementById("syncBtn");
   const icon = document.getElementById("syncIcon");
@@ -685,12 +705,26 @@ async function runSync() {
   icon.style.animation = "spin 1s linear infinite";
   showToast("מסנכרן...", "#555");
   try {
-    const res = await fetch(SYNC_URL);
+    const res = await fetch(APPS_SCRIPT_URL + '?token=fightlab2026');
     const data = await res.json();
-    if (data.triggered) {
-      showToast("✓ סנכרון החל — טען מחדש עוד דקה", "#2a9d5c");
+    const links = data.links || [];
+    if (links.length === 0) {
+      showToast("אין קישורים חדשים", "#555");
+      saveSyncStatus(0);
     } else {
-      showToast("שגיאה בסנכרון", "#c7171a");
+      const addRes = await fetch(
+        APPS_SCRIPT_URL + '?token=fightlab2026&action=add_links',
+        { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify(links) }
+      );
+      const addData = await addRes.json();
+      if (addData.ok) {
+        showToast("✓ " + addData.added + " קישורים נוספו!", "#2a9d5c");
+        saveSyncStatus(addData.added);
+        setTimeout(() => window.location.reload(), 2500);
+      } else {
+        showToast("שגיאה בהוספה", "#c7171a");
+        saveSyncStatus(0);
+      }
     }
   } catch(e) {
     showToast("שגיאת רשת", "#c7171a");
@@ -777,7 +811,7 @@ function render() {
     CATS_ORDER.slice(1).forEach(c => byCat[c] = []);
     filtered.forEach(l => { const c = getLinkCat(l); if (byCat[c]) byCat[c].push(l); else byCat[c] = [l]; });
     const CAT_EMOJI = {
-      "מועדפים":"❤️","תאילנדי":"🥊","שקים":"👊","MMA":"🥋","ילדים":"👦","ילדים BJJ":"🤼","ילדים MMA":"🥋","ילדים איגרוף תאילנדי":"🥊","Mobility":"🤸","בעיטות":"🦵","שוטרים":"🛡️","הגנה עצמית":"🤺","BJJ":"🤼"
+      "מועדפים":"❤️","תאילנדי":"🥊","שקים":"👊","MMA":"🥋","ילדים":"👦","ילדים BJJ":"🤼","ילדים MMA":"🥋","ילדים איגרוף תאילנדי":"🥊","Mobility":"🤸","בעיטות":"🦵","שוטרים":"🛡️","הגנה עצמית":"🤺","BJJ":"🤼","קטלבל":"🔔"
     };
     function parseD(d) { var p=d.split('/'); return new Date(p[2],p[1]-1,p[0]); }
     const KIDS_SUBS = ['ילדים BJJ', 'ילדים MMA', 'ילדים איגרוף תאילנדי'];
@@ -900,6 +934,7 @@ function cardHTML(l) {
 function setcat(c) { activeCat = c; render(); }
 
 render();
+renderSyncStatus();
 
 // Event delegation for drag — stable container survives re-renders
 document.getElementById("catBar").addEventListener("click", function(e) {
