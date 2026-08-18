@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
 <meta charset="UTF-8">
@@ -501,6 +501,8 @@ const PLATFORM_SVG = {
   tt: `<svg viewBox="0 0 24 24" fill="#000000"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.69a8.18 8.18 0 004.78 1.52V6.76a4.85 4.85 0 01-1.01-.07z"/></svg>`,
   other: LOGO_IMG
 };
+const PLATFORM_NORM = {facebook:'fb',Facebook:'fb',instagram:'ig',Instagram:'ig',youtube:'yt',YouTube:'yt',tiktok:'tt',TikTok:'tt'};
+function normPlatform(p) { return PLATFORM_NORM[p] || (PLATFORM_SVG[p] ? p : 'other'); }
 
 const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycby0rr63GDi5Mv_JmZ6Yx-XamNGamm6i_PUVDwQ7DbNTv4cg1aTcbWyCXebKSD4YYyHpQQ/exec";
 
@@ -924,7 +926,7 @@ function cardHTML(l) {
   return `<div class="card" data-url="${escapedUrl}">
     <div class="card-row">
       <a class="card-main" href="${l.url}" target="_blank" rel="noopener">
-        <div class="platform-icon pi-${l.platform}">${PLATFORM_SVG[l.platform]}</div>
+        <div class="platform-icon pi-${normPlatform(l.platform)}">${PLATFORM_SVG[normPlatform(l.platform)]}</div>
         <div class="card-body">
           <div class="card-title">${l.title}</div>
           <div class="card-meta">${l.date}${desc ? ' <span class="has-desc-dot"></span>' : ""}</div>
