@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
 <meta charset="UTF-8">
@@ -19,28 +19,26 @@
   header h1 { font-size: 20px; font-weight: 600; color: #1a1a1a; margin-bottom: 14px; }
   header h1 span { color: #c7171a; }
 
-  .cats { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 12px; scrollbar-width: none; -ms-overflow-style: none; }
-  .cats::-webkit-scrollbar { display: none; }
+  .cat-trigger { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; background: #fff; border: 1.5px solid #ddd; border-radius: 20px; padding: 7px 14px; font-size: 14px; font-weight: 500; cursor: pointer; font-family: inherit; color: #333; width: 100%; }
+  .cat-trigger.has-filter { border-color: #c7171a; background: #fff5f5; color: #c7171a; }
+  .cat-trigger-right { display: flex; align-items: center; gap: 8px; }
+  .cat-trigger-count { background: #c7171a; color: #fff; border-radius: 10px; font-size: 12px; font-weight: 600; padding: 1px 8px; }
+  .cat-trigger-chevron { font-size: 11px; color: #aaa; }
 
-  .cat-btn {
-    flex-shrink: 0;
-    border: 1.5px solid #ddd;
-    background: #fff;
-    color: #555;
-    font-size: 13px;
-    font-weight: 500;
-    padding: 6px 14px;
-    border-radius: 20px;
-    cursor: pointer;
-    font-family: inherit;
-    transition: all 0.15s;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-  .cat-btn .count { font-size: 11px; background: #f0f0ea; color: #888; border-radius: 10px; padding: 1px 6px; }
-  .cat-btn.active { background: #c7171a; border-color: #c7171a; color: #fff; }
-  .cat-btn.active .count { background: rgba(255,255,255,0.25); color: #fff; }
+  .cat-sheet-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 200; }
+  .cat-sheet-overlay.open { display: flex; align-items: flex-end; }
+  .cat-sheet { background: #fff; border-radius: 20px 20px 0 0; width: 100%; max-height: 80vh; display: flex; flex-direction: column; }
+  .cat-sheet-handle { width: 36px; height: 4px; background: #ddd; border-radius: 2px; margin: 10px auto; flex-shrink: 0; }
+  .cat-sheet-title { font-size: 12px; font-weight: 600; color: #999; text-transform: uppercase; letter-spacing: 0.5px; padding: 4px 16px 12px; border-bottom: 0.5px solid #eee; flex-shrink: 0; }
+  .cat-sheet-list { overflow-y: auto; flex: 1; }
+  .cat-sheet-row { display: flex; align-items: center; justify-content: space-between; padding: 13px 16px; border-bottom: 0.5px solid #f0f0f0; cursor: pointer; font-size: 15px; color: #1a1a1a; }
+  .cat-sheet-row:active { background: #f8f8f8; }
+  .cat-sheet-row.active { background: #fff5f5; }
+  .cat-sheet-row-left { display: flex; align-items: center; gap: 12px; }
+  .cat-sheet-row-emoji { font-size: 20px; width: 28px; text-align: center; }
+  .cat-sheet-row-right { display: flex; align-items: center; gap: 8px; }
+  .cat-sheet-row-count { font-size: 13px; color: #aaa; }
+  .cat-sheet-check { color: #c7171a; font-size: 16px; font-weight: 600; }
 
   main { padding: 12px 12px 80px; }
 
@@ -338,8 +336,22 @@
       <input type="search" id="searchInput" placeholder="חיפוש..." oninput="render()">
     </div>
   </div>
-  <div class="cats" id="catBar"></div>
+  <button class="cat-trigger" id="catTrigger" onclick="openCatSheet()">
+    <span id="catTriggerLabel">הכל</span>
+    <span class="cat-trigger-right">
+      <span class="cat-trigger-count" id="catTriggerCount">0</span>
+      <span class="cat-trigger-chevron">▾</span>
+    </span>
+  </button>
 </header>
+
+<div class="cat-sheet-overlay" id="catSheetOverlay" onclick="closeCatSheetIfOutside(event)">
+  <div class="cat-sheet">
+    <div class="cat-sheet-handle"></div>
+    <div class="cat-sheet-title">קטגוריה</div>
+    <div class="cat-sheet-list" id="catSheetList"></div>
+  </div>
+</div>
 
 <main id="main"></main>
 
@@ -800,11 +812,30 @@ function render() {
 
   const KIDS_SUBS_NAV = ['ילדים BJJ', 'ילדים MMA', 'ילדים איגרוף תאילנדי'];
   const kidsActive = KIDS_SUBS_NAV.includes(activeCat);
-  document.getElementById("catBar").innerHTML = CATS_ORDER.filter(c => counts[c] && !KIDS_SUBS_NAV.includes(c)).map(c => {
-    const isActive = activeCat === c || (c === 'ילדים' && kidsActive);
-    return `<button class="cat-btn ${isActive?"active":""}" data-cat="${c}">
-      <span>${c}</span><span class="count">${counts[c]||0}</span>
-    </button>`;
+  const displayCat = kidsActive ? 'ילדים' : activeCat;
+  const triggerLabel = document.getElementById("catTriggerLabel");
+  const triggerCount = document.getElementById("catTriggerCount");
+  const triggerBtn = document.getElementById("catTrigger");
+  triggerLabel.textContent = activeCat;
+  triggerCount.textContent = counts[displayCat] || counts[activeCat] || 0;
+  triggerBtn.className = 'cat-trigger' + (activeCat !== 'הכל' ? ' has-filter' : '');
+  const CAT_EMOJI_SHEET = {"הכל":"📋","מועדפים":"❤️","תאילנדי":"🥊","שקים":"👊","MMA":"🥋","ילדים":"👦","ילדים BJJ":"🤼","ילדים MMA":"🥋","ילדים איגרוף תאילנדי":"🥊","Mobility":"🤸","בעיטות":"🦵","שוטרים":"🛡️","הגנה עצמית":"🤺","BJJ":"🤼","קטלבל":"🔔","כושר":"💪"};
+  const sheetCats = CATS_ORDER.filter(c => counts[c] && !KIDS_SUBS_NAV.includes(c));
+  const pinnedCats = ['הכל', 'מועדפים'].filter(c => sheetCats.includes(c));
+  const sortedRest = sheetCats.filter(c => !pinnedCats.includes(c)).sort((a, b) => a.localeCompare(b, 'he'));
+  const orderedCats = [...pinnedCats, ...sortedRest];
+  document.getElementById("catSheetList").innerHTML = orderedCats.map(c => {
+    const isActive = c === displayCat || (c === activeCat);
+    return `<div class="cat-sheet-row${isActive?' active':''}" data-cat="${c}">
+      <div class="cat-sheet-row-left">
+        <span class="cat-sheet-row-emoji">${CAT_EMOJI_SHEET[c]||'📁'}</span>
+        <span>${c}</span>
+      </div>
+      <div class="cat-sheet-row-right">
+        <span class="cat-sheet-row-count">${counts[c]||0}</span>
+        ${isActive ? '<span class="cat-sheet-check">✓</span>' : ''}
+      </div>
+    </div>`;
   }).join("");
 
   let filtered = getOrderedLinks().filter(l => {
@@ -956,10 +987,12 @@ function setcat(c) { activeCat = c; render(); }
 render();
 renderSyncStatus();
 
-// Event delegation for drag — stable container survives re-renders
-document.getElementById("catBar").addEventListener("click", function(e) {
-  const btn = e.target.closest(".cat-btn");
-  if (btn && btn.dataset.cat) setcat(btn.dataset.cat);
+function openCatSheet() { document.getElementById("catSheetOverlay").classList.add("open"); }
+function closeCatSheet() { document.getElementById("catSheetOverlay").classList.remove("open"); }
+function closeCatSheetIfOutside(e) { if (e.target === document.getElementById("catSheetOverlay")) closeCatSheet(); }
+document.getElementById("catSheetList").addEventListener("click", function(e) {
+  const row = e.target.closest(".cat-sheet-row");
+  if (row && row.dataset.cat) { setcat(row.dataset.cat); closeCatSheet(); }
 });
 const mainEl = document.getElementById("main");
 mainEl.addEventListener("touchstart", function(e) {
@@ -1030,3 +1063,4 @@ mainEl.addEventListener("click", function(e) {
   </script>
 </body>
 </html>
+
