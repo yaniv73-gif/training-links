@@ -34,9 +34,9 @@
   .cat-sheet-row { display: flex; align-items: center; justify-content: space-between; padding: 13px 16px; border-bottom: 0.5px solid #f0f0f0; cursor: pointer; font-size: 15px; color: #1a1a1a; }
   .cat-sheet-row:active { background: #f8f8f8; }
   .cat-sheet-row.active { background: #fff5f5; }
-  .cat-sheet-row-left { display: flex; align-items: center; gap: 12px; }
+  .cat-sheet-row-left { display: flex; align-items: center; gap: 10px; }
   .cat-sheet-row-emoji { font-size: 20px; width: 28px; text-align: center; }
-  .cat-sheet-row-right { display: flex; align-items: center; gap: 8px; }
+  .cat-sheet-row-name-group { display: flex; align-items: center; gap: 8px; }
   .cat-sheet-row-count { font-size: 13px; color: #aaa; }
   .cat-sheet-check { color: #c7171a; font-size: 16px; font-weight: 600; }
 
@@ -829,12 +829,12 @@ function render() {
     return `<div class="cat-sheet-row${isActive?' active':''}" data-cat="${c}">
       <div class="cat-sheet-row-left">
         <span class="cat-sheet-row-emoji">${CAT_EMOJI_SHEET[c]||'📁'}</span>
-        <span>${c}</span>
+        <div class="cat-sheet-row-name-group">
+          <span>${c}</span>
+          <span class="cat-sheet-row-count">${counts[c]||0}</span>
+        </div>
       </div>
-      <div class="cat-sheet-row-right">
-        <span class="cat-sheet-row-count">${counts[c]||0}</span>
-        ${isActive ? '<span class="cat-sheet-check">✓</span>' : ''}
-      </div>
+      ${isActive ? '<span class="cat-sheet-check">✓</span>' : ''}
     </div>`;
   }).join("");
 
