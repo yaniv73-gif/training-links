@@ -374,11 +374,6 @@
 
 <script>
 const LINKS = [
-  { date:"22/08/2026", title:"לאימון bjj", cat:"BJJ", url:"https://www.facebook.com/share/r/18bqbDr44K/", platform:"fb", desc:"Standing collar drag" },
-  { date:"23/08/2026", title:"לאימון bjj", cat:"BJJ", url:"https://www.facebook.com/share/r/1DSketQwt8/", platform:"fb", desc:"Over under take down" },
-  { date:"23/08/2026", title:"לאימון הגנה את עצמית", cat:"הגנה עצמית", url:"https://www.facebook.com/share/r/1KvmmtMRyY/", platform:"fb", desc:"הגנה מסטנדינג הדלוק" },
-  { date:"24/08/2026", title:"לאימון mma", cat:"MMA", url:"https://youtu.be/jvwNYiH1LEo?si=w1-Ie-ogbYRn4MKV", platform:"yt", desc:"Collar tie to high crotch to take down" },
-  { date:"26/08/2026", title:"לאימון bjj", cat:"BJJ", url:"https://www.facebook.com/share/r/1EtKp7VhHG/", platform:"fb", desc:"נו גח טייקדאון" },
   { date:"22/08/2026", title:"לאימון כושר", cat:"כושר", url:"https://www.facebook.com/share/r/1HnvhA6zcy/", platform:"fb", desc:"עבודה על קיר" },
   { date:"21/08/2026", title:"לאימון bjj", cat:"BJJ", url:"https://www.facebook.com/share/v/1NWyUu6KwZ/", platform:"fb", desc:"Armbar from upa" },
   { date:"20/08/2026", title:"לאימון bjj", cat:"BJJ", url:"https://www.facebook.com/share/r/1FLwtznefK/", platform:"fb", desc:"ארמבר מעמידה" },
@@ -513,6 +508,15 @@ const LINKS = [
   { date:"14/06/2026", title:"לאימון BJJ חצי גארד ", cat:"BJJ", url:"https://rogergracietv.com/programs/half-guard-back-take-3-ffa8af", platform:"other", desc:"תפיסת גב שהטופס הולך לקימורה" },
   { date:"14/06/2026", title:"לאימון BJJ חצי גארד ", cat:"BJJ", url:"https://rogergracietv.com/programs/half-guard-replacement-68da44", platform:"other", desc:"החזרה לגאקד מלא גי" }
 ];
+
+// Merge localStorage-synced links (avoid duplicates by URL)
+(function() {
+  try {
+    const synced = JSON.parse(localStorage.getItem('syncedLinks') || '[]');
+    const existing = new Set(LINKS.map(l => l.url));
+    synced.forEach(l => { if (l && l.url && !existing.has(l.url)) { LINKS.unshift(l); existing.add(l.url); } });
+  } catch(e) {}
+})();
 
 const CATS_FIXED = ["הכל","מועדפים","תאילנדי","שקים","MMA","ילדים","ילדים BJJ","ילדים MMA","ילדים איגרוף תאילנדי","Mobility","בעיטות","הגנה עצמית","שוטרים","BJJ","קטלבל","כושר"];
 const CATS_ORDER = [...new Set([...CATS_FIXED, ...LINKS.map(l => l.cat)])].filter(c => c);
@@ -756,6 +760,12 @@ async function runSync() {
       );
       const addData = await addRes.json();
       if (addData.ok) {
+        try {
+          const prev = JSON.parse(localStorage.getItem('syncedLinks') || '[]');
+          const existing = new Set(prev.map(l => l.url));
+          links.forEach(l => { if (l && l.url && !existing.has(l.url)) prev.push(l); });
+          localStorage.setItem('syncedLinks', JSON.stringify(prev));
+        } catch(e) {}
         showToast("✓ " + addData.added + " קישורים נוספו!", "#2a9d5c");
         saveSyncStatus(addData.added);
         setTimeout(() => window.location.reload(), 2500);
