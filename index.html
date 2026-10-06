@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
 <meta charset="UTF-8">
@@ -608,7 +608,11 @@ function saveOrder(orderedLinks) {
 function saveCats() {
   localStorage.setItem("linkCats", JSON.stringify(customCats));
 }
-function getLinkCat(l) { return customCats[l.url] || l.cat; }
+function getLinkCats(l) {
+  if (customCats[l.url]) return [customCats[l.url]];
+  return l.cats || [l.cat || 'BJJ'];
+}
+function getLinkCat(l) { return getLinkCats(l)[0]; }
 function getOrderedLinks() {
   const visible = LINKS.filter(l => !deletedUrls.has(l.url));
   if (!customOrder) return visible;
@@ -873,7 +877,7 @@ function getCounts() {
   const KIDS_SUBS = ['ילדים BJJ', 'ילדים MMA', 'ילדים איגרוף תאילנדי'];
   const counts = { "הכל": visible.length };
   counts["מועדפים"] = visible.filter(l => isFav(l.url)).length;
-  visible.forEach(l => { const c = getLinkCat(l); counts[c] = (counts[c] || 0) + 1; });
+  visible.forEach(l => { getLinkCats(l).forEach(c => { counts[c] = (counts[c] || 0) + 1; }); });
   KIDS_SUBS.forEach(sc => { if (counts[sc]) { counts['ילדים'] = (counts['ילדים'] || 0) + counts[sc]; } });
   return counts;
 }
@@ -912,10 +916,10 @@ function render() {
 
   let filtered = getOrderedLinks().filter(l => {
     const KIDS_SUBS_FILTER = ['ילדים BJJ', 'ילדים MMA', 'ילדים איגרוף תאילנדי'];
-    const lcat = getLinkCat(l);
-    const catOk = activeCat === "הכל" || (activeCat === "מועדפים" ? isFav(l.url) : activeCat === 'ילדים' ? (lcat === 'ילדים' || KIDS_SUBS_FILTER.includes(lcat)) : lcat === activeCat);
+    const lcats = getLinkCats(l);
+    const catOk = activeCat === "הכל" || (activeCat === "מועדפים" ? isFav(l.url) : activeCat === 'ילדים' ? lcats.some(c => c === 'ילדים' || KIDS_SUBS_FILTER.includes(c)) : lcats.includes(activeCat));
     const desc = getDesc(l).toLowerCase();
-    const qOk = !q || l.title.toLowerCase().includes(q) || getLinkCat(l).toLowerCase().includes(q) || l.date.includes(q) || desc.includes(q);
+    const qOk = !q || l.title.toLowerCase().includes(q) || lcats.some(c => c.toLowerCase().includes(q)) || l.date.includes(q) || desc.includes(q);
     return catOk && qOk;
   });
 
@@ -932,7 +936,7 @@ function render() {
   if (activeCat === "הכל" && !q) {
     const byCat = {};
     CATS_ORDER.slice(1).forEach(c => byCat[c] = []);
-    filtered.forEach(l => { const c = getLinkCat(l); if (byCat[c]) byCat[c].push(l); else byCat[c] = [l]; });
+    filtered.forEach(l => { getLinkCats(l).forEach(c => { if (byCat[c]) byCat[c].push(l); else byCat[c] = [l]; }); });
     const CAT_EMOJI = {
       "מועדפים":"❤️","תאילנדי":"🥊","שקים":"👊","MMA":"🥋","ילדים":"👦","ילדים BJJ":"🤼","ילדים MMA":"🥋","ילדים איגרוף תאילנדי":"🥊","Mobility":"🤸","בעיטות":"🦵","שוטרים":"🛡️","הגנה עצמית":"🤺","BJJ":"🤼","קטלבל":"🔔","כושר":"💪"
     };
@@ -1135,4 +1139,5 @@ mainEl.addEventListener("click", function(e) {
   </script>
 </body>
 </html>
+
 
